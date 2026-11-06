@@ -28,36 +28,79 @@ public class MultiModelPipeline {
                                            .replace("\r", "\\r")
                                            .replace("\t", "\\t");
 
+            // Define Prompts for both Tasks
             String staticAnalysisPrompt = "You are an automated SAST tool. Analyze this Java source code. Find vulnerabilities and return ONLY a valid, raw JSON block following this exact format without any markdown code wrappers: " +
                     "{\\\"findings\\\": [{\\\"filePath\\\": \\\"" + webgoatFilePath + "\\\", \\\"lineNumbers\\\": \\\"string\\\", \\\"cweId\\\": \\\"string\\\", \\\"cweName\\\": \\\"string\\\", \\\"description\\\": \\\"string\\\"}]}. Code: " + escapedCode;
 
+            String defensivePatchPrompt = "You are an expert secure application developer. Securely rewrite the following code to eliminate any SQL Injection vulnerability using proper defense-in-depth methodologies (like PreparedStatements). Return ONLY a valid, raw JSON block following this exact format without any markdown code wrappers: " +
+                    "{\\\"generatedCode\\\": \\\"your refactored secure code string\\\", \\\"mitigationSummary\\\": \\\"your manual verification text\\\"}. Code to fix: " + escapedCode;
+
+            // ==========================================
             // ---- MODEL 1: OPENAI GPT-4o ----
+            // ==========================================
             if (openaiKey != null && !openaiKey.isBlank()) {
-                System.out.println("\n🤖 EXECUTING PIPELINE FOR: OpenAI GPT-4o");
-                String payload = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
-                String response = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload, null);
-                System.out.println("🔍 Scan Result:\n" + response);
+                System.out.println("\n🤖 ========================================");
+                System.out.println("🤖 EXECUTING PIPELINE FOR: OpenAI GPT-4o");
+                System.out.println("🤖 ========================================");
+                
+                // Task 1
+                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
+                String payload1 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
+                String response1 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload1, null);
+                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+
+                // Task 2
+                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
+                String payload2 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
+                String response2 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload2, null);
+                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
             }
 
+            // ==========================================
             // ---- MODEL 2: GOOGLE GEMINI 1.5 PRO ----
+            // ==========================================
             if (geminiKey != null && !geminiKey.isBlank()) {
-                System.out.println("\n🤖 EXECUTING PIPELINE FOR: Google Gemini 1.5 Pro");
-                String payload = "{\"contents\": [{\"parts\": [{\"text\": \"" + staticAnalysisPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
-                String url = "https://googleapis.com" + geminiKey;
-                String response = sendPostRequest(url, null, payload, null);
-                System.out.println("🔍 Scan Result:\n" + response);
+                System.out.println("\n🤖 ========================================");
+                System.out.println("🤖 EXECUTING PIPELINE FOR: Google Gemini 1.5 Pro");
+                System.out.println("🤖 ========================================");
+                
+                // Task 1
+                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
+                String payload1 = "{\"contents\": [{\"parts\": [{\"text\": \"" + staticAnalysisPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
+                String url1 = "https://googleapis.com" + geminiKey;
+                String response1 = sendPostRequest(url1, null, payload1, null);
+                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+
+                // Task 2
+                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
+                String payload2 = "{\"contents\": [{\"parts\": [{\"text\": \"" + defensivePatchPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
+                String response2 = sendPostRequest(url1, null, payload2, null);
+                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
             }
 
+            // ==========================================
             // ---- MODEL 3: ANTHROPIC CLAUDE 3.5 SONNET ----
+            // ==========================================
             if (anthropicKey != null && !anthropicKey.isBlank()) {
-                System.out.println("\n🤖 EXECUTING PIPELINE FOR: Anthropic Claude 3.5 Sonnet");
-                String payload = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
-                String response = sendPostRequest("https://anthropic.com", "Bearer " + anthropicKey, payload, anthropicKey);
-                System.out.println("🔍 Scan Result:\n" + response);
+                System.out.println("\n🤖 ========================================");
+                System.out.println("🤖 EXECUTING PIPELINE FOR: Anthropic Claude 3.5 Sonnet");
+                System.out.println("🤖 ========================================");
+                
+                // Task 1
+                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
+                String payload1 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
+                String response1 = sendPostRequest("https://anthropic.com", null, payload1, anthropicKey);
+                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+
+                // Task 2
+                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
+                String payload2 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
+                String response2 = sendPostRequest("https://anthropic.com", null, payload2, anthropicKey);
+                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
             }
 
         } catch (Exception e) {
-            System.err.println("Pipeline failed: " + e.getMessage());
+            System.err.println("❌ Pipeline failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
