@@ -39,68 +39,68 @@ public class MultiModelPipeline {
             // ---- MODEL 1: OPENAI GPT-4o ----
             // ==========================================
             if (openaiKey != null && !openaiKey.isBlank()) {
-                System.out.println("\n🤖 ========================================");
-                System.out.println("🤖 EXECUTING PIPELINE FOR: OpenAI GPT-4o");
-                System.out.println("🤖 ========================================");
+                System.out.println("\n ========================================");
+                System.out.println(" EXECUTING PIPELINE FOR: OpenAI GPT-4o");
+                System.out.println(" ========================================");
                 
                 // Task 1
-                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
                 String payload1 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
                 String response1 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload1, null);
-                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+                System.out.println(" Task 1 Findings Report:\n" + response1);
 
                 // Task 2
-                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
+                System.out.println("\n [TASK 2] Generating Defensive Patch...");
                 String payload2 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
                 String response2 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload2, null);
-                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" Task 2 Refactoring Output:\n" + response2);
             }
 
             // ==========================================
             // ---- MODEL 2: GOOGLE GEMINI 1.5 PRO ----
             // ==========================================
             if (geminiKey != null && !geminiKey.isBlank()) {
-                System.out.println("\n🤖 ========================================");
-                System.out.println("🤖 EXECUTING PIPELINE FOR: Google Gemini 1.5 Pro");
-                System.out.println("🤖 ========================================");
+                System.out.println("\n ========================================");
+                System.out.println(" EXECUTING PIPELINE FOR: Google Gemini 1.5 Pro");
+                System.out.println(" ========================================");
                 
                 // Task 1
-                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
                 String payload1 = "{\"contents\": [{\"parts\": [{\"text\": \"" + staticAnalysisPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
                 String url1 = "https://googleapis.com" + geminiKey;
                 String response1 = sendPostRequest(url1, null, payload1, null);
-                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+                System.out.println(" Task 1 Findings Report:\n" + response1);
 
                 // Task 2
-                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
+                System.out.println("\n [TASK 2] Generating Defensive Patch...");
                 String payload2 = "{\"contents\": [{\"parts\": [{\"text\": \"" + defensivePatchPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
                 String response2 = sendPostRequest(url1, null, payload2, null);
-                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" Task 2 Refactoring Output:\n" + response2);
             }
 
             // ==========================================
             // ---- MODEL 3: ANTHROPIC CLAUDE 3.5 SONNET ----
             // ==========================================
             if (anthropicKey != null && !anthropicKey.isBlank()) {
-                System.out.println("\n🤖 ========================================");
-                System.out.println("🤖 EXECUTING PIPELINE FOR: Anthropic Claude 3.5 Sonnet");
-                System.out.println("🤖 ========================================");
+                System.out.println("\n ========================================");
+                System.out.println(" EXECUTING PIPELINE FOR: Anthropic Claude 3.5 Sonnet");
+                System.out.println(" ========================================");
                 
                 // Task 1
-                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
                 String payload1 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
                 String response1 = sendPostRequest("https://anthropic.com", null, payload1, anthropicKey);
-                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+                System.out.println(" Task 1 Findings Report:\n" + response1);
 
                 // Task 2
-                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
+                System.out.println("\n [TASK 2] Generating Defensive Patch...");
                 String payload2 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
                 String response2 = sendPostRequest("https://anthropic.com", null, payload2, anthropicKey);
-                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" Task 2 Refactoring Output:\n" + response2);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Pipeline failed: " + e.getMessage());
+            System.err.println(" Pipeline failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
