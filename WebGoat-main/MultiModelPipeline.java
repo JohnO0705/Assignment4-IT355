@@ -11,14 +11,14 @@ public class MultiModelPipeline {
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     public static void main(String[] args) {
-        String webgoatFilePath = "webgoat-lessons/sql-injection/src/main/java/org/owasp/webgoat/plugin/SqlInjectionLesson5a.java";
+        String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjection.java"; // Path to the WebGoat source code file
 
         String openaiKey = System.getenv("OPENAI_API_KEY");
         String anthropicKey = System.getenv("ANTHROPIC_API_KEY");
         String geminiKey = System.getenv("GEMINI_API_KEY");
 
         try {
-            System.out.println("📂 Loading WebGoat Target Source Text: " + webgoatFilePath);
+            System.out.println("Loading WebGoat Target Source Text: " + webgoatFilePath);
             String sourceCode = Files.readString(Paths.get(webgoatFilePath));
             
             // Clean up source code strings for safe JSON payload transmission
