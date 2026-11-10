@@ -5,15 +5,22 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class MultiModelPipeline {
 
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
-    public static void main(String[] args) {
-        String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjection.java"; // Path to the WebGoat source code file
+    private static final String GEMINI_MODEL = "gemini-3.8-flash";
+    private static final String ANTHROPIC_MODEL = "claude-sonnet-5-5";
 
-        String openaiKey = System.getenv("OPENAI_API_KEY");
+    private static final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
+    private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+
+    public static void main(String[] args) {
+        String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java"; // Path to the WebGoat source code file
+
+        String groqKey = System.getenv("GROQ_API_KEY");
         String anthropicKey = System.getenv("ANTHROPIC_API_KEY");
         String geminiKey = System.getenv("GEMINI_API_KEY");
 
@@ -36,73 +43,99 @@ public class MultiModelPipeline {
                     "{\\\"generatedCode\\\": \\\"your refactored secure code string\\\", \\\"mitigationSummary\\\": \\\"your manual verification text\\\"}. Code to fix: " + escapedCode;
 
             // ==========================================
-            // ---- MODEL 1: OPENAI GPT-4o ----
+            // ---- MODEL 1: Groq ----
             // ==========================================
-            if (openaiKey != null && !openaiKey.isBlank()) {
-                System.out.println("\n🤖 ========================================");
-                System.out.println("🤖 EXECUTING PIPELINE FOR: OpenAI GPT-4o");
-                System.out.println("🤖 ========================================");
+            if (groqKey != null && !groqKey.isBlank()) {
+                System.out.println("\n ========================================");
+                System.out.println(" EXECUTING PIPELINE FOR: Groq");
+                System.out.println(" ========================================");
                 
                 // Task 1
-                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
-                String response1 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload1, null);
-                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
+                String payload1 = "{\"model\": \"openai/gpt-oss-20b\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
+                String response1 = sendPostRequest("https://api.groq.com/openai/v1/chat/completions", "Bearer " + groqKey, payload1, null);
+                System.out.println(" Task 1 Findings Report:\n" + response1);
 
                 // Task 2
-                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
-                String response2 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload2, null);
-                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
+                System.out.println("\n [TASK 2] Generating Defensive Patch...");
+                String payload2 = "{\"model\": \"openai/gpt-oss-20b\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
+                String response2 = sendPostRequest("https://api.groq.com/openai/v1/chat/completions", "Bearer " + groqKey, payload2, null);
+                System.out.println(" Task 2 Refactoring Output:\n" + response2);
             }
 
             // ==========================================
-            // ---- MODEL 2: GOOGLE GEMINI 1.5 PRO ----
+            // ---- MODEL 2: GOOGLE GEMINI (Interactions API) ----
             // ==========================================
-            if (geminiKey != null && !geminiKey.isBlank()) {
-                System.out.println("\n🤖 ========================================");
-                System.out.println("🤖 EXECUTING PIPELINE FOR: Google Gemini 1.5 Pro");
-                System.out.println("🤖 ========================================");
-                
-                // Task 1
-                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"contents\": [{\"parts\": [{\"text\": \"" + staticAnalysisPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
-                String url1 = "https://googleapis.com" + geminiKey;
-                String response1 = sendPostRequest(url1, null, payload1, null);
-                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+            if (isSet(geminiKey)) {
+                banner("Google " + GEMINI_MODEL);
+                Map<String, String> headers = Map.of("x-goog-api-key", geminiKey);
 
-                // Task 2
-                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"contents\": [{\"parts\": [{\"text\": \"" + defensivePatchPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
-                String response2 = sendPostRequest(url1, null, payload2, null);
-                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" Task 1 Findings Report:\n"
+                        + post(GEMINI_URL, headers, geminiPayload(staticAnalysisPrompt)));
+
+                System.out.println("\n [TASK 2] Generating Defensive Patch...");
+                System.out.println(" Task 2 Refactoring Output:\n"
+                        + post(GEMINI_URL, headers, geminiPayload(defensivePatchPrompt)));
             }
 
             // ==========================================
-            // ---- MODEL 3: ANTHROPIC CLAUDE 3.5 SONNET ----
+            // ---- MODEL 3: ANTHROPIC CLAUDE ----
             // ==========================================
-            if (anthropicKey != null && !anthropicKey.isBlank()) {
-                System.out.println("\n🤖 ========================================");
-                System.out.println("🤖 EXECUTING PIPELINE FOR: Anthropic Claude 3.5 Sonnet");
-                System.out.println("🤖 ========================================");
-                
-                // Task 1
-                System.out.println("🔍 [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
-                String response1 = sendPostRequest("https://anthropic.com", null, payload1, anthropicKey);
-                System.out.println("📊 Task 1 Findings Report:\n" + response1);
+            if (isSet(anthropicKey)) {
+                banner("Anthropic " + ANTHROPIC_MODEL);
+                Map<String, String> headers = Map.of(
+                        "x-api-key", anthropicKey,
+                        "anthropic-version", "2023-06-01");
 
-                // Task 2
-                System.out.println("\n🛠️ [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
-                String response2 = sendPostRequest("https://anthropic.com", null, payload2, anthropicKey);
-                System.out.println("✨ Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" Task 1 Findings Report:\n"
+                        + post(ANTHROPIC_URL, headers, anthropicPayload(staticAnalysisPrompt)));
+
+                System.out.println("\n [TASK 2] Generating Defensive Patch...");
+                System.out.println(" Task 2 Refactoring Output:\n"
+                        + post(ANTHROPIC_URL, headers, anthropicPayload(defensivePatchPrompt)));
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Pipeline failed: " + e.getMessage());
+            System.err.println(" Pipeline failed: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private static String post(String url, Map<String, String> headers, String jsonPayload)
+            throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload));
+
+        headers.forEach(builder::header);
+
+        HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        System.out.println(" HTTP status: " + response.statusCode()); // 400 = bad request/key, 404 = bad model, 429 = rate limit
+        return response.body();
+    }
+
+    // Gemini Interactions API: {"model": "...", "input": "..."}
+    // The reply text is at steps[type=model_output].content[0].text
+    private static String geminiPayload(String prompt) {
+        return "{\"model\": \"" + GEMINI_MODEL + "\", \"input\": \"" + prompt + "\"}";
+    }
+
+    private static String anthropicPayload(String prompt) {
+        return "{\"model\": \"" + ANTHROPIC_MODEL + "\", \"max_tokens\": 4096, "
+                + "\"messages\": [{\"role\": \"user\", \"content\": \"" + prompt + "\"}]}";
+    }
+
+    private static boolean isSet(String key) {
+        return key != null && !key.isBlank();
+    }
+
+    private static void banner(String name) {
+        System.out.println("\n ========================================");
+        System.out.println(" EXECUTING PIPELINE FOR: " + name);
+        System.out.println(" ========================================");
     }
 
     private static String sendPostRequest(String url, String authHeader, String jsonPayload, String anthropicKey) throws IOException, InterruptedException {
