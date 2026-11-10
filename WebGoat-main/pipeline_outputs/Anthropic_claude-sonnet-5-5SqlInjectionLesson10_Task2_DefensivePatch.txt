@@ -1,0 +1,121 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2017 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AssignmentHints(
+    value = {
+      \"SqlStringInjectionHint.10.1\",
+      \"SqlStringInjectionHint.10.2\",
+      \"SqlStringInjectionHint.10.3\",
+      \"SqlStringInjectionHint.10.4\",
+      \"SqlStringInjectionHint.10.5\",
+      \"SqlStringInjectionHint.10.6\"
+    })
+public class SqlInjectionLesson10 implements AssignmentEndpoint {
+
+  private static final String SEARCH_QUERY = \"SELECT * FROM access_log WHERE action LIKE ?\";
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson10(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/attack10\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String action_string) {
+    return injectableQueryAvailability(action_string);
+  }
+
+  protected AttackResult injectableQueryAvailability(String action) {
+    StringBuilder output = new StringBuilder();
+
+    try (Connection connection = dataSource.getConnection()) {
+      try (PreparedStatement statement =
+          connection.prepareStatement(
+              SEARCH_QUERY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        // User input is bound as data only; it can never alter the SQL structure.
+        statement.setString(1, \"%\" + action + \"%\");
+
+        try (ResultSet results = statement.executeQuery()) {
+          if (results.getStatement() != null) {
+            results.first();
+            output.append(SqlInjectionLesson8.generateTable(results));
+            return failed(this)
+                .feedback(\"sql-injection.10.entries\")
+                .output(output.toString())
+                .build();
+          } else {
+            if (tableExists(connection)) {
+              return failed(this)
+                  .feedback(\"sql-injection.10.entries\")
+                  .output(output.toString())
+                  .build();
+            } else {
+              return success(this).feedback(\"sql-injection.10.success\").build();
+            }
+          }
+        }
+      } catch (SQLException e) {
+        if (tableExists(connection)) {
+          // Do not leak raw database error details to the client.
+          return failed(this)
+              .output(
+                  \"<span class='feedback-negative'>An error occurred while processing the request.</span><br>\"
+                      + output.toString())
+              .build();
+        } else {
+          return success(this).feedback(\"sql-injection.10.success\").build();
+        }
+      }
+
+    } catch (Exception e) {
+      return failed(this)
+          .output(\"<span class='feedback-negative'>An unexpected error occurred.</span>\")
+          .build();
+    }
+  }
+
+  private boolean tableExists(Connection connection) {
+    // Static query with no user input.
+    try (Statement stmt =
+            connection.createStatement(
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet results = stmt.executeQuery(\"SELECT * FROM access_log\")) {
+      int cols = results.getMetaData().getColumnCount();
+      return (cols > 0);
+    } catch (SQLException e) {
+      String errorMsg = e.getMessage();
+      if (errorMsg != null && errorMsg.contains(\"object not found: ACCESS_LOG\")) {
+        return false;
+      } else {
+        return true;
+      }
+    }
+  }
+}
+",
+	 "mitigationSummary":  "The vulnerability was SQL injection caused by concatenating the user-supplied 'action_string' parameter directly into the query string ('... LIKE '%\" + action + \"%''). The fix replaces the concatenated Statement with a parameterized PreparedStatement whose query is the constant 'SELECT * FROM access_log WHERE action LIKE ?'. The user input is bound with setString(1, \"%\" + action + \"%\"), so the database driver treats it strictly as a data value and never as SQL syntax. Quote characters, UNION clauses, semicolons or DROP TABLE payloads therefore cannot change the query structure. Defense-in-depth changes: (1) Statements and ResultSets are now closed via try-with-resources to prevent resource leaks. (2) Raw exception messages (e.getMessage()) are no longer returned to the client, which reduces information disclosure that could help an attacker craft payloads. (3) The helper tableExists() uses only a static query with no user input and is null-safe on the error message. The only wildcard characters a user can still supply are LIKE wildcards (% and _), which affect matching but not query structure and are not an injection risk. Manual verification: input such as \"' OR '1'='1\" or \"'; DROP TABLE access_log; --\" is now searched as a literal string and returns no injected behavior, and normal searches still return the matching access_log rows."
+}
+
