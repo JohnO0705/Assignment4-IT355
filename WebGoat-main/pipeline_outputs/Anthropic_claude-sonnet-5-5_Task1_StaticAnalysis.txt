@@ -1,0 +1,22 @@
+{
+	"findings":  [
+		{
+			"filePath":  "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+			 "lineNumbers":  "35-36,44-48",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-controlled request parameters 'account', 'operator' and 'injection' are concatenated directly into the SQL query string. The query is then run through a plain Statement.executeQuery() with no parameterization or input validation. An attacker can alter the query logic, for example with ' or '1'='1, to read arbitrary data from user_data or other tables. The statement uses CONCUR_UPDATABLE, so it may also allow modification. A PreparedStatement with bound parameters should be used instead. The operator parameter in particular allows arbitrary SQL syntax."
+		},
+		 {
+			"filePath":  "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+			 "lineNumbers":  "55-60,67-77",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "SQL exception messages, the full executed query and the internal class name are returned to the client in the response output (sqle.getMessage(), e.getMessage(), this.getClass().getName(), query). This discloses database structure and implementation details, which helps attackers refine SQL injection attacks."
+		},
+		 {
+			"filePath":  "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+			 "lineNumbers":  "55-60,67-77,97-118",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The query string, which contains user input, and the database values written by writeTable() are appended to HTML output without encoding. The error messages are treated the same way. If an attacker injects HTML or script through the input, or through stored database values, it may be reflected into the page and executed in the victim's browser.\

@@ -1,0 +1,18 @@
+{
+	"error": {
+		"message": "Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.",
+		"type": "invalid_request_error",
+		"code": "json_validate_failed",
+		"failed_generation": "{"generatedCode":"public class SqlInjectionLesson5a implements AssignmentEndpoint {
+			    private static final String EXPLANATION = \"\u003cbr\u003e Explanation:  This injection works,
+			 because \u003cspan style=\\\"font-style:  italic\\\"\u003eor '1' = '1'\u003c/span\u003e always evaluates to true (The string ending literal for '1 is closed by the query itself,
+			 so you should not inject it). So the injected query basically looks like this:  \u003cspan style=\\\"font-style:  italic\\\"\u003eSELECT * FROM user_data WHERE (first_name = 'John' and last_name = '') or (TRUE)\u003c/span\u003e,
+			 which will always evaluate to true,
+			 no matter what came before it.\";    private final LessonDataSource dataSource;    public SqlInjectionLesson5a(LessonDataSource dataSource) {
+				        this.dataSource = dataSource;    
+			}    @PostMapping(\"/SqlInjection/assignment5a\")    @ResponseBody    public AttackResult completed(@RequestParam String account,
+			 @RequestParam String operator,
+			 @RequestParam String injection) {
+				        return injectableQuery(account + \" \" + operator + \" \" + injection);    
+			}
+		}"}}

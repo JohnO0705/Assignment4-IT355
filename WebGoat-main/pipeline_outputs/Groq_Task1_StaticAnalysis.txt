@@ -1,0 +1,8 @@
+{
+	"findings": [
+		{
+			"filePath": "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java",
+			"lineNumbers": "48",
+			"cweId": "89",
+			"cweName": "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			"description": "The code concatenates user-supplied input into an SQL query string without sanitization or parameterization, leading to SQL injection vulnerability.\
