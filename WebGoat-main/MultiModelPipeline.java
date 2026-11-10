@@ -11,9 +11,9 @@ public class MultiModelPipeline {
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     public static void main(String[] args) {
-        String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjection.java"; // Path to the WebGoat source code file
+        String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java"; // Path to the WebGoat source code file
 
-        String openaiKey = System.getenv("OPENAI_API_KEY");
+        String groqKey = System.getenv("GROQ_API_KEY");
         String anthropicKey = System.getenv("ANTHROPIC_API_KEY");
         String geminiKey = System.getenv("GEMINI_API_KEY");
 
@@ -36,23 +36,23 @@ public class MultiModelPipeline {
                     "{\\\"generatedCode\\\": \\\"your refactored secure code string\\\", \\\"mitigationSummary\\\": \\\"your manual verification text\\\"}. Code to fix: " + escapedCode;
 
             // ==========================================
-            // ---- MODEL 1: OPENAI GPT-4o ----
+            // ---- MODEL 1: Groq ----
             // ==========================================
-            if (openaiKey != null && !openaiKey.isBlank()) {
+            if (groqKey != null && !groqKey.isBlank()) {
                 System.out.println("\n ========================================");
-                System.out.println(" EXECUTING PIPELINE FOR: OpenAI GPT-4o");
+                System.out.println(" EXECUTING PIPELINE FOR: Groq");
                 System.out.println(" ========================================");
                 
                 // Task 1
                 System.out.println(" [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
-                String response1 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload1, null);
+                String payload1 = "{\"model\": \"llama-3.3-70b-versatile\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
+                String response1 = sendPostRequest("https://api.groq.com/openai/v1/chat/completions", "Bearer " + groqKey, payload1, null);
                 System.out.println(" Task 1 Findings Report:\n" + response1);
 
                 // Task 2
                 System.out.println("\n [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"model\": \"gpt-4o\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
-                String response2 = sendPostRequest("https://openai.com", "Bearer " + openaiKey, payload2, null);
+                String payload2 = "{\"model\": \"llama-3.3-70b-versatile\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
+                String response2 = sendPostRequest("https://api.groq.com/openai/v1/chat/completions", "Bearer " + groqKey, payload2, null);
                 System.out.println(" Task 2 Refactoring Output:\n" + response2);
             }
 
