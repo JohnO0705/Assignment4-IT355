@@ -45,13 +45,13 @@ public class MultiModelPipeline {
                 
                 // Task 1
                 System.out.println(" [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"model\": \"llama-3.3-70b-versatile\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
+                String payload1 = "{\"model\": \"openai/gpt-oss-20b\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
                 String response1 = sendPostRequest("https://api.groq.com/openai/v1/chat/completions", "Bearer " + groqKey, payload1, null);
                 System.out.println(" Task 1 Findings Report:\n" + response1);
 
                 // Task 2
                 System.out.println("\n [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"model\": \"llama-3.3-70b-versatile\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
+                String payload2 = "{\"model\": \"openai/gpt-oss-20b\", \"response_format\": {\"type\": \"json_object\"}, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
                 String response2 = sendPostRequest("https://api.groq.com/openai/v1/chat/completions", "Bearer " + groqKey, payload2, null);
                 System.out.println(" Task 2 Refactoring Output:\n" + response2);
             }
