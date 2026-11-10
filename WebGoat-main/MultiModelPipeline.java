@@ -12,8 +12,10 @@ public class MultiModelPipeline {
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     private static final String GEMINI_MODEL = "gemini-3.8-flash";
+    private static final String ANTHROPIC_MODEL = "claude-sonnet-5-5";
 
     private static final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
+    private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
     public static void main(String[] args) {
         String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java"; // Path to the WebGoat source code file
@@ -78,24 +80,21 @@ public class MultiModelPipeline {
             }
 
             // ==========================================
-            // ---- MODEL 3: ANTHROPIC CLAUDE 3.5 SONNET ----
+            // ---- MODEL 3: ANTHROPIC CLAUDE ----
             // ==========================================
-            if (anthropicKey != null && !anthropicKey.isBlank()) {
-                System.out.println("\n ========================================");
-                System.out.println(" EXECUTING PIPELINE FOR: Anthropic Claude 3.5 Sonnet");
-                System.out.println(" ========================================");
-                
-                // Task 1
-                System.out.println(" [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + staticAnalysisPrompt + "\"}]}";
-                String response1 = sendPostRequest("https://anthropic.com", null, payload1, anthropicKey);
-                System.out.println(" Task 1 Findings Report:\n" + response1);
+            if (isSet(anthropicKey)) {
+                banner("Anthropic " + ANTHROPIC_MODEL);
+                Map<String, String> headers = Map.of(
+                        "x-api-key", anthropicKey,
+                        "anthropic-version", "2023-06-01");
 
-                // Task 2
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" Task 1 Findings Report:\n"
+                        + post(ANTHROPIC_URL, headers, anthropicPayload(staticAnalysisPrompt)));
+
                 System.out.println("\n [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"model\": \"claude-3-5-sonnet-20241022\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"" + defensivePatchPrompt + "\"}]}";
-                String response2 = sendPostRequest("https://anthropic.com", null, payload2, anthropicKey);
-                System.out.println(" Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" Task 2 Refactoring Output:\n"
+                        + post(ANTHROPIC_URL, headers, anthropicPayload(defensivePatchPrompt)));
             }
 
         } catch (Exception e) {
@@ -122,6 +121,11 @@ public class MultiModelPipeline {
     // The reply text is at steps[type=model_output].content[0].text
     private static String geminiPayload(String prompt) {
         return "{\"model\": \"" + GEMINI_MODEL + "\", \"input\": \"" + prompt + "\"}";
+    }
+
+    private static String anthropicPayload(String prompt) {
+        return "{\"model\": \"" + ANTHROPIC_MODEL + "\", \"max_tokens\": 4096, "
+                + "\"messages\": [{\"role\": \"user\", \"content\": \"" + prompt + "\"}]}";
     }
 
     private static boolean isSet(String key) {
