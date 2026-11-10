@@ -5,10 +5,15 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class MultiModelPipeline {
 
     private static final HttpClient httpClient = HttpClient.newHttpClient();
+
+    private static final String GEMINI_MODEL = "gemini-3.8-flash";
+
+    private static final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
     public static void main(String[] args) {
         String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java"; // Path to the WebGoat source code file
@@ -57,25 +62,19 @@ public class MultiModelPipeline {
             }
 
             // ==========================================
-            // ---- MODEL 2: GOOGLE GEMINI 1.5 PRO ----
+            // ---- MODEL 2: GOOGLE GEMINI (Interactions API) ----
             // ==========================================
-            if (geminiKey != null && !geminiKey.isBlank()) {
-                System.out.println("\n ========================================");
-                System.out.println(" EXECUTING PIPELINE FOR: Google Gemini 1.5 Pro");
-                System.out.println(" ========================================");
-                
-                // Task 1
-                System.out.println(" [TASK 1] Running Static Analysis Scan...");
-                String payload1 = "{\"contents\": [{\"parts\": [{\"text\": \"" + staticAnalysisPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
-                String url1 = "https://googleapis.com" + geminiKey;
-                String response1 = sendPostRequest(url1, null, payload1, null);
-                System.out.println(" Task 1 Findings Report:\n" + response1);
+            if (isSet(geminiKey)) {
+                banner("Google " + GEMINI_MODEL);
+                Map<String, String> headers = Map.of("x-goog-api-key", geminiKey);
 
-                // Task 2
+                System.out.println(" [TASK 1] Running Static Analysis Scan...");
+                System.out.println(" Task 1 Findings Report:\n"
+                        + post(GEMINI_URL, headers, geminiPayload(staticAnalysisPrompt)));
+
                 System.out.println("\n [TASK 2] Generating Defensive Patch...");
-                String payload2 = "{\"contents\": [{\"parts\": [{\"text\": \"" + defensivePatchPrompt + "\"}]}], \"generationConfig\": {\"responseMimeType\": \"application/json\"}}";
-                String response2 = sendPostRequest(url1, null, payload2, null);
-                System.out.println(" Task 2 Refactoring Output:\n" + response2);
+                System.out.println(" Task 2 Refactoring Output:\n"
+                        + post(GEMINI_URL, headers, geminiPayload(defensivePatchPrompt)));
             }
 
             // ==========================================
@@ -103,6 +102,36 @@ public class MultiModelPipeline {
             System.err.println(" Pipeline failed: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private static String post(String url, Map<String, String> headers, String jsonPayload)
+            throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload));
+
+        headers.forEach(builder::header);
+
+        HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        System.out.println(" HTTP status: " + response.statusCode()); // 400 = bad request/key, 404 = bad model, 429 = rate limit
+        return response.body();
+    }
+
+    // Gemini Interactions API: {"model": "...", "input": "..."}
+    // The reply text is at steps[type=model_output].content[0].text
+    private static String geminiPayload(String prompt) {
+        return "{\"model\": \"" + GEMINI_MODEL + "\", \"input\": \"" + prompt + "\"}";
+    }
+
+    private static boolean isSet(String key) {
+        return key != null && !key.isBlank();
+    }
+
+    private static void banner(String name) {
+        System.out.println("\n ========================================");
+        System.out.println(" EXECUTING PIPELINE FOR: " + name);
+        System.out.println(" ========================================");
     }
 
     private static String sendPostRequest(String url, String authHeader, String jsonPayload, String anthropicKey) throws IOException, InterruptedException {
