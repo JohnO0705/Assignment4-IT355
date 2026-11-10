@@ -18,7 +18,7 @@ public class MultiModelPipeline {
     // Directory where the structured output text files will be stored
     private static final String OUTPUT_DIR = "pipeline_outputs";
 
-    public static void main(String[] args) {
+    public static void main() {
         String webgoatFilePath = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/introduction/SqlInjectionLesson5a.java";
         String groqKey = System.getenv("GROQ_API_KEY");
         String anthropicKey = System.getenv("ANTHROPIC_API_KEY");
@@ -46,7 +46,6 @@ public class MultiModelPipeline {
             if (groqKey != null && !groqKey.isBlank()) {
                 banner("Groq");
             
-                // Fix: Explicitly point to Groq's proper completion route
                 String groqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
             
                 // Task 1
@@ -61,7 +60,6 @@ public class MultiModelPipeline {
                     "]" +
                 "}";
                 String response1 = sendPostRequest(groqEndpoint, "Bearer " + groqKey, payload1, null);
-                System.out.println(" Task 1 Findings Report:\n" + response1);
                 saveOutput("Groq", "Task1_StaticAnalysis", response1);
             
                 // Task 2
@@ -76,7 +74,6 @@ public class MultiModelPipeline {
                     "]" +
                 "}";
                 String response2 = sendPostRequest(groqEndpoint, "Bearer " + groqKey, payload2, null);
-                System.out.println(" Task 2 Refactoring Output:\n" + response2);
                 saveOutput("Groq", "Task2_DefensivePatch", response2);
             }
             
@@ -91,12 +88,10 @@ public class MultiModelPipeline {
 
                 System.out.println(" [TASK 1] Running Static Analysis Scan...");
                 String response1 = post(GEMINI_URL, headers, geminiPayload(staticAnalysisPrompt));
-                System.out.println(" Task 1 Findings Report:\n" + response1);
                 saveOutput("Google_" + GEMINI_MODEL, "Task1_StaticAnalysis", response1);
 
                 System.out.println("\n [TASK 2] Generating Defensive Patch...");
                 String response2 = post(GEMINI_URL, headers, geminiPayload(defensivePatchPrompt));
-                System.out.println(" Task 2 Refactoring Output:\n" + response2);
                 saveOutput("Google_" + GEMINI_MODEL, "Task2_DefensivePatch", response2);
             }
 
@@ -111,12 +106,10 @@ public class MultiModelPipeline {
 
                 System.out.println(" [TASK 1] Running Static Analysis Scan...");
                 String response1 = post(ANTHROPIC_URL, headers, anthropicPayload(staticAnalysisPrompt));
-                System.out.println(" Task 1 Findings Report:\n" + response1);
                 saveOutput("Anthropic_" + ANTHROPIC_MODEL, "Task1_StaticAnalysis", response1);
 
                 System.out.println("\n [TASK 2] Generating Defensive Patch...");
                 String response2 = post(ANTHROPIC_URL, headers, anthropicPayload(defensivePatchPrompt));
-                System.out.println(" Task 2 Refactoring Output:\n" + response2);
                 saveOutput("Anthropic_" + ANTHROPIC_MODEL, "Task2_DefensivePatch", response2);
             }
 
@@ -172,7 +165,7 @@ public class MultiModelPipeline {
         return response.body();
     }
 
-        /**
+    /**
      * Helper method to output structured text files on disk.
      * Automatically extracts inner JSON content and pretty-prints it for readability.
      */
