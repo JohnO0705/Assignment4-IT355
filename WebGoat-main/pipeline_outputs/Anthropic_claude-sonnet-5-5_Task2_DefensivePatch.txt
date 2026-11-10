@@ -8,11 +8,7 @@ package org.owasp.webgoat.lessons.sqlinjection.introduction;
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.sql.*;
 import org.owasp.webgoat.container.LessonDataSource;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
@@ -29,9 +25,9 @@ import org.springframework.web.util.HtmlUtils;
 @AssignmentHints(value = {\"SqlStringInjectionHint5a1\"})
 public class SqlInjectionLesson5a implements AssignmentEndpoint {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SqlInjectionLesson5a.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SqlInjectionLesson5a.class);
 
-  private static final String QUERY =
+  private static final String QUERY_TEMPLATE =
       \"SELECT * FROM user_data WHERE first_name = 'John' and last_name = ?\";
 
   private static final String EXPLANATION =
@@ -51,16 +47,16 @@ public class SqlInjectionLesson5a implements AssignmentEndpoint {
   @ResponseBody
   public AttackResult completed(
       @RequestParam String account, @RequestParam String operator, @RequestParam String injection) {
-    // All user input is treated purely as data and is bound as a single parameter below.
+    // All user supplied parts are treated purely as DATA and bound as a single parameter.
     return injectableQuery(account + \" \" + operator + \" \" + injection);
   }
 
   protected AttackResult injectableQuery(String accountName) {
+    String shownQuery = HtmlUtils.htmlEscape(QUERY_TEMPLATE);
     try (Connection connection = dataSource.getConnection();
         PreparedStatement statement =
             connection.prepareStatement(
-                QUERY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-
+                QUERY_TEMPLATE, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
       statement.setString(1, accountName);
 
       try (ResultSet results = statement.executeQuery()) {
@@ -75,30 +71,30 @@ public class SqlInjectionLesson5a implements AssignmentEndpoint {
           if (results.getRow() >= 6) {
             return success(this)
                 .feedback(\"sql-injection.5a.success\")
-                .output(\"Your query was: \" + HtmlUtils.htmlEscape(QUERY) + EXPLANATION)
+                .output(\"Your query was: \" + shownQuery + EXPLANATION)
                 .feedbackArgs(output.toString())
                 .build();
           } else {
             return failed(this)
-                .output(output.toString() + \"<br> Your query was: \" + HtmlUtils.htmlEscape(QUERY))
+                .output(output.toString() + \"<br> Your query was: \" + shownQuery)
                 .build();
           }
         } else {
           return failed(this)
               .feedback(\"sql-injection.5a.no.results\")
-              .output(\"Your query was: \" + HtmlUtils.htmlEscape(QUERY))
+              .output(\"Your query was: \" + shownQuery)
               .build();
         }
       }
     } catch (SQLException sqle) {
-      LOG.error(\"Database error while executing assignment 5a query\", sqle);
+      LOGGER.error(\"Database error while executing assignment 5a query\", sqle);
       return failed(this)
-          .output(\"A database error occurred.<br> Your query was: \" + HtmlUtils.htmlEscape(QUERY))
+          .output(\"A database error occurred.<br> Your query was: \" + shownQuery)
           .build();
     } catch (Exception e) {
-      LOG.error(\"Unexpected error while executing assignment 5a query\", e);
+      LOGGER.error(\"Unexpected error in assignment 5a\", e);
       return failed(this)
-          .output(\"An unexpected error occurred.<br> Your query was: \" + HtmlUtils.htmlEscape(QUERY))
+          .output(\"An unexpected error occurred.<br> Your query was: \" + shownQuery)
           .build();
     }
   }
@@ -139,5 +135,5 @@ public class SqlInjectionLesson5a implements AssignmentEndpoint {
   }
 }
 ",
-	 "mitigationSummary":  "The vulnerable code concatenated the user-controlled account, operator and injection parameters directly into the SQL string and ran it through a plain Statement, so an attacker could alter the query structure (e.g. ' OR '1'='1). The fix has four parts. (1) The query is now a constant template with a ? placeholder for last_name, executed through a PreparedStatement. The combined user input is bound with setString, so the driver always treats it as a literal value and never as SQL syntax. (2) The ResultSet concurrency is changed from CONCUR_UPDATABLE to CONCUR_READ_ONLY (least privilege), since the code only reads. Statement, PreparedStatement and ResultSet are all closed via try-with-resources. (3) Raw SQL exception messages and class names are no longer returned to the client; errors are logged server-side and the user gets a generic message, which reduces information leakage. (4) As defense in depth, database values and the query text echoed back to the user are HTML-escaped to prevent stored or reflected XSS. Manual verification: the input \"Smith' OR '1'='1\" is now matched as a literal last_name value and returns no rows. No user input is concatenated into SQL anywhere. Note that the lesson's intended exploit no longer works, which is the expected result of the fix."
+	 "mitigationSummary":  "The vulnerability was string concatenation of the user-controlled values (account, operator, injection) directly into the SQL text via a plain Statement. Fixes: (1) The query is now a constant template with a single '?' placeholder, executed through a PreparedStatement. The combined user input is bound with setString(), so the driver sends it as data and it can never change the SQL structure (quotes, OR 1=1, UNION, comments, etc. are treated as a literal last_name value). (2) The ResultSet concurrency was changed from CONCUR_UPDATABLE to CONCUR_READ_ONLY (least privilege), keeping TYPE_SCROLL_INSENSITIVE since the code uses first()/last()/beforeFirst(). (3) Defense in depth: connection, statement and result set are managed with try-with-resources; raw SQLException/exception messages are no longer echoed to the client (they are logged server-side and a generic message is returned), preventing information leakage; the displayed query is the static template, not user-built SQL; and all database values and column names written into the HTML table are HTML-escaped to prevent stored/reflected XSS. Manual verification: a payload like \"' OR '1'='1\" is now matched literally against last_name and returns no rows, and no code path concatenates user input into SQL. Note that the original lesson's intended injection no longer succeeds, which is the intended secure behavior."
 }
