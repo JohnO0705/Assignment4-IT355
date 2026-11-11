@@ -1,7 +1,7 @@
 {
 	"error": {
-		"message": "gemini-3.8-flash is currently experiencing high demand, spikes in demand are usually temporary. Please try again later.",
-		"code": "service_unavailable"
+		"message": "Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h16m19s or upgrade your tier at https://ai.dev/rate-limit.",
+		"code": "too_many_requests"
 	}
 }
 

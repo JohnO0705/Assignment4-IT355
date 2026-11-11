@@ -4,11 +4,59 @@
 	]
 }
 
-=== FILE: SqlInjectionLesson10 ===
+{
+	"findings": [
+		{
+			"filePath": "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\introduction\\SqlInjectionLesson10.java",
+			"lineNumbers": "49-56",
+			"cweId": "CWE-89",
+			"cweName": "Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)",
+			"description": "User input is concatenated directly into an SQL query string without sanitization or use of prepared statements, allowing attackers to inject arbitrary SQL.\
+
+=== FILE: SqlInjectionLesson2 ===
 {"error":{"message":"Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.","type":"invalid_request_error","code":"json_validate_failed","failed_generation":""}}
 
 
-=== FILE: SqlInjectionLesson2 ===
+{
+	"findings": [
+		{
+			"filePath": "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson3.java",
+			"lineNumbers": "47",
+			"cweId": "CWE-89",
+			"cweName": "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			"description": "User-supplied query string is executed directly via Statement.executeUpdate, leading to SQL injection vulnerability.\
+
+=== FILE: SqlInjectionLesson4 ===
+{"error":{"message":"Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.","type":"invalid_request_error","code":"json_validate_failed","failed_generation":""}}
+
+
+{
+	"findings": [
+		{
+			"filePath": "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5.java",
+			"lineNumbers": "65",
+			"cweId": "89",
+			"cweName": "Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)",
+			"description": "The method injectableQuery executes a user-supplied query string directly using Statement.executeQuery without sanitization or parameterization, enabling SQL injection attacks.\
+
+{
+	"findings": [
+		{
+			"filePath": "src\\\\main\\\\java\\\\org\\\\owasp\\\\webgoat\\\\lessons\\\\sqlinjection\\\\introduction\\\\SqlInjectionLesson5a.java",
+			"lineNumbers": "48-49",
+			"cweId": "CWE-89",
+			"cweName": "SQL Injection",
+			"description": "User input is concatenated into an SQL query without sanitization or parameterization, allowing attackers to inject arbitrary SQL.\
+
+=== FILE: SqlInjectionLesson5b ===
+{"error":{"message":"Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.","type":"invalid_request_error","code":"json_validate_failed","failed_generation":""}}
+
+
+=== FILE: SqlInjectionLesson8 ===
+{"error":{"message":"Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.","type":"invalid_request_error","code":"json_validate_failed","failed_generation":""}}
+
+
+=== FILE: SqlInjectionLesson9 ===
 {"error":{"message":"Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.","type":"invalid_request_error","code":"json_validate_failed","failed_generation":""}}
 
 

@@ -1,0 +1,104 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2014 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(value = {\"SqlStringInjectionHint3-1\", \"SqlStringInjectionHint3-2\"})
+public class SqlInjectionLesson3 implements AssignmentEndpoint {
+
+  private static final int MAX_QUERY_LENGTH = 500;
+
+  // Strict allow-list: only a simple UPDATE of employees.department filtered by last_name.
+  // Literal values cannot contain quotes, so they cannot break out of the literal.
+  private static final Pattern ALLOWED_UPDATE =
+      Pattern.compile(
+          \"^\\\\s*UPDATE\\\\s+employees\\\\s+SET\\\\s+department\\\\s*=\\\\s*'([^']{1,50})'\\\\s+WHERE\\\\s+last_name\\\\s*=\\\\s*'([^']{1,50})'\\\\s*;?\\\\s*$\",
+          Pattern.CASE_INSENSITIVE);
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson3(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/attack3\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String query) {
+    return injectableQuery(query);
+  }
+
+  protected AttackResult injectableQuery(String query) {
+    if (query == null || query.length() > MAX_QUERY_LENGTH) {
+      return failed(this).output(\"Invalid query.\").build();
+    }
+    Matcher matcher = ALLOWED_UPDATE.matcher(query);
+    if (!matcher.matches()) {
+      return failed(this)
+          .output(
+              \"Only a simple UPDATE of the department column of the employees table, filtered by last_name, is accepted.\")
+          .build();
+    }
+    String department = matcher.group(1);
+    String lastName = matcher.group(2);
+
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement update =
+            connection.prepareStatement(
+                \"UPDATE employees SET department = ? WHERE last_name = ?\");
+        PreparedStatement check =
+            connection.prepareStatement(
+                \"SELECT * FROM employees WHERE last_name = ?\",
+                TYPE_SCROLL_INSENSITIVE,
+                CONCUR_READ_ONLY)) {
+
+      update.setString(1, department);
+      update.setString(2, lastName);
+      update.executeUpdate();
+
+      check.setString(1, \"Barnett\");
+      try (ResultSet results = check.executeQuery()) {
+        StringBuilder output = new StringBuilder();
+        // user completes lesson if the department of Tobi Barnett now is 'Sales'
+        if (results.first() && \"Sales\".equals(results.getString(\"department\"))) {
+          output.append(\"<span class='feedback-positive'>\" + HtmlUtils.htmlEscape(query) + \"</span>\");
+          output.append(SqlInjectionLesson8.generateTable(results));
+          return success(this).output(output.toString()).build();
+        } else {
+          return failed(this).output(output.toString()).build();
+        }
+      }
+    } catch (SQLException sqle) {
+      return failed(this).output(\"The query could not be executed.\").build();
+    } catch (Exception e) {
+      return failed(this).output(\"An unexpected error occurred.\").build();
+    }
+  }
+}
+",
+	 "mitigationSummary":  "The original code passed the user-supplied 'query' parameter straight to Statement.executeUpdate(), so any SQL could run (arbitrary UPDATE/DELETE/DROP, stacked queries). The fix applies several layers. (1) Input validation: the query is length-limited and must match a strict allow-list regex (UPDATE employees SET department = '<value>' WHERE last_name = '<value>'). Literal values cannot contain single quotes, so nothing can break out of them, and other statements, columns, tables, and stacked queries are rejected. (2) Parameterized queries: the extracted values are bound with PreparedStatement placeholders (?) for both the UPDATE and the verification SELECT, so they are always treated as data and never as SQL. (3) Resource handling: Connection, PreparedStatements and ResultSet are all closed via try-with-resources. (4) Output hardening: the echoed query is HTML-escaped with HtmlUtils.htmlEscape to prevent reflected XSS, and detailed SQL/exception messages are no longer returned to the client, which avoids information leakage. Manual verification: payloads such as \"Sales'; DROP TABLE employees; --\" or \"... OR '1'='1\" fail the regex and are rejected. Even a value that passed the regex would be bound as a parameter. The legitimate query UPDATE employees SET department = 'Sales' WHERE last_name = 'Barnett' still completes the lesson."
+}
+

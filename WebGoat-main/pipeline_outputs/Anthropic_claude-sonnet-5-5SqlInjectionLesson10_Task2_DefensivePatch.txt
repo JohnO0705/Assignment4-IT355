@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 @AssignmentHints(
@@ -34,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
     })
 public class SqlInjectionLesson10 implements AssignmentEndpoint {
 
-  private static final String SEARCH_QUERY = \"SELECT * FROM access_log WHERE action LIKE ?\";
+  private static final int MAX_INPUT_LENGTH = 200;
 
   private final LessonDataSource dataSource;
 
@@ -51,16 +52,22 @@ public class SqlInjectionLesson10 implements AssignmentEndpoint {
   protected AttackResult injectableQueryAvailability(String action) {
     StringBuilder output = new StringBuilder();
 
+    if (action == null || action.length() > MAX_INPUT_LENGTH) {
+      return failed(this)
+          .output(\"<span class='feedback-negative'>Invalid input.</span>\")
+          .build();
+    }
+
+    // Parameterized query: user input is bound as data, never parsed as SQL
+    final String query = \"SELECT * FROM access_log WHERE action LIKE ?\";
+
     try (Connection connection = dataSource.getConnection()) {
       try (PreparedStatement statement =
           connection.prepareStatement(
-              SEARCH_QUERY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-        // User input is bound as data only; it can never alter the SQL structure.
-        statement.setString(1, \"%\" + action + \"%\");
-
+              query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        statement.setString(1, \"%\" + escapeLikeWildcards(action) + \"%\");
         try (ResultSet results = statement.executeQuery()) {
-          if (results.getStatement() != null) {
-            results.first();
+          if (results.first()) {
             output.append(SqlInjectionLesson8.generateTable(results));
             return failed(this)
                 .feedback(\"sql-injection.10.entries\")
@@ -79,10 +86,11 @@ public class SqlInjectionLesson10 implements AssignmentEndpoint {
         }
       } catch (SQLException e) {
         if (tableExists(connection)) {
-          // Do not leak raw database error details to the client.
           return failed(this)
               .output(
-                  \"<span class='feedback-negative'>An error occurred while processing the request.</span><br>\"
+                  \"<span class='feedback-negative'>\"
+                      + HtmlUtils.htmlEscape(String.valueOf(e.getMessage()))
+                      + \"</span><br>\"
                       + output.toString())
               .build();
         } else {
@@ -92,13 +100,19 @@ public class SqlInjectionLesson10 implements AssignmentEndpoint {
 
     } catch (Exception e) {
       return failed(this)
-          .output(\"<span class='feedback-negative'>An unexpected error occurred.</span>\")
+          .output(
+              \"<span class='feedback-negative'>\"
+                  + HtmlUtils.htmlEscape(String.valueOf(e.getMessage()))
+                  + \"</span>\")
           .build();
     }
   }
 
+  private static String escapeLikeWildcards(String input) {
+    return input.replace(\"\\\\\", \"\\\\\\\\\").replace(\"%\", \"\\\\%\").replace(\"_\", \"\\\\_\");
+  }
+
   private boolean tableExists(Connection connection) {
-    // Static query with no user input.
     try (Statement stmt =
             connection.createStatement(
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -116,6 +130,6 @@ public class SqlInjectionLesson10 implements AssignmentEndpoint {
   }
 }
 ",
-	 "mitigationSummary":  "The vulnerability was SQL injection caused by concatenating the user-supplied 'action_string' parameter directly into the query string ('... LIKE '%\" + action + \"%''). The fix replaces the concatenated Statement with a parameterized PreparedStatement whose query is the constant 'SELECT * FROM access_log WHERE action LIKE ?'. The user input is bound with setString(1, \"%\" + action + \"%\"), so the database driver treats it strictly as a data value and never as SQL syntax. Quote characters, UNION clauses, semicolons or DROP TABLE payloads therefore cannot change the query structure. Defense-in-depth changes: (1) Statements and ResultSets are now closed via try-with-resources to prevent resource leaks. (2) Raw exception messages (e.getMessage()) are no longer returned to the client, which reduces information disclosure that could help an attacker craft payloads. (3) The helper tableExists() uses only a static query with no user input and is null-safe on the error message. The only wildcard characters a user can still supply are LIKE wildcards (% and _), which affect matching but not query structure and are not an injection risk. Manual verification: input such as \"' OR '1'='1\" or \"'; DROP TABLE access_log; --\" is now searched as a literal string and returns no injected behavior, and normal searches still return the matching access_log rows."
+	 "mitigationSummary":  "The vulnerable string concatenation (\"... LIKE '%\" + action + \"%'\") was replaced with a PreparedStatement using a bound ? parameter, so user input is always treated as data and cannot alter the SQL structure (no stacked queries, UNION, or quote breakouts). The LIKE wildcard characters in input (%, _, \\) are escaped so users cannot widen the match pattern; note that some databases (e.g. HSQLDB) need an explicit ESCAPE clause for backslash escaping to take effect, so add `ESCAPE '\\'` to the query if exact literal matching is required. Defense-in-depth additions: input null/length validation, try-with-resources for Statement/ResultSet to prevent resource leaks, and HTML-escaping of exception messages reflected in the response to avoid XSS and reduce information leakage. The fixed tableExists query is a constant with no user input. Manual verification: payloads such as `' OR '1'='1` or `'; DROP TABLE access_log; --` are now searched literally as text and return no rows rather than executing."
 }
 

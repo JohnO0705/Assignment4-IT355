@@ -20,7 +20,7 @@ public class MultiModelPipeline {
     private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
     private static final String OUTPUT_DIR = "pipeline_outputs";
 
-    public static void main(String[] args) { // Fixed method signature to accept args
+    public static void main(String[] args) {
         String targetFolder = "src/main/java/org/owasp/webgoat/lessons/sqlinjection/Introduction";
         String groqKey = System.getenv("GROQ_API_KEY");
         String anthropicKey = System.getenv("ANTHROPIC_API_KEY");

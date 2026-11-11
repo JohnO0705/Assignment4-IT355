@@ -1,0 +1,113 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2014 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import jakarta.annotation.PostConstruct;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(
+    value = {
+      \"SqlStringInjectionHint5-1\",
+      \"SqlStringInjectionHint5-2\",
+      \"SqlStringInjectionHint5-3\",
+      \"SqlStringInjectionHint5-4\"
+    })
+public class SqlInjectionLesson5 implements AssignmentEndpoint {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SqlInjectionLesson5.class);
+  private static final int MAX_INPUT_LENGTH = 128;
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson5(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostConstruct
+  public void createUser() {
+    // HSQLDB does not support CREATE USER with IF NOT EXISTS so we need to do it in code.
+    // The statement is static and contains no user input.
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement statement =
+            connection.prepareStatement(\"CREATE USER unauthorized_user PASSWORD test\")) {
+      statement.execute();
+    } catch (Exception e) {
+      // user already exists, continue
+    }
+  }
+
+  @PostMapping(\"/SqlInjection/attack5\")
+  @ResponseBody
+  public AttackResult completed(String query) {
+    return safeQuery(query);
+  }
+
+  /**
+   * User input is never executed as SQL. It is only ever bound as a parameter value of a fixed,
+   * read-only query.
+   */
+  protected AttackResult safeQuery(String input) {
+    if (input == null || input.isBlank() || input.length() > MAX_INPUT_LENGTH) {
+      return failed(this).output(\"Invalid input.\").build();
+    }
+    final String sql =
+        \"SELECT TABLE_NAME, PRIVILEGE_TYPE FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES\"
+            + \" WHERE GRANTEE = ? AND TABLE_NAME = ?\";
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement statement = connection.prepareStatement(sql)) {
+      statement.setString(1, \"UNAUTHORIZED_USER\");
+      statement.setString(2, input.trim());
+      try (ResultSet rs = statement.executeQuery()) {
+        while (rs.next()) {
+          // result intentionally not echoed back to the client
+        }
+      }
+      if (checkSolution(connection)) {
+        return success(this).build();
+      }
+      return failed(this).output(\"Your input was: \" + HtmlUtils.htmlEscape(input)).build();
+    } catch (SQLException e) {
+      LOG.error(\"Database error while processing request\", e);
+      return failed(this).output(\"An error occurred while processing your request.\").build();
+    }
+  }
+
+  private boolean checkSolution(Connection connection) {
+    try (PreparedStatement stmt =
+        connection.prepareStatement(
+            \"SELECT * FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE TABLE_NAME = ? AND GRANTEE =\"
+                + \" ?\")) {
+      stmt.setString(1, \"GRANT_RIGHTS\");
+      stmt.setString(2, \"UNAUTHORIZED_USER\");
+      try (ResultSet resultSet = stmt.executeQuery()) {
+        return resultSet.next();
+      }
+    } catch (SQLException e) {
+      return false;
+    }
+  }
+}
+",
+	 "mitigationSummary":  "The original endpoint passed the user-supplied 'query' string straight to Statement.executeQuery(), which allows arbitrary SQL execution (GRANT, DROP, etc.). A PreparedStatement cannot safely parameterize a whole SQL statement, so the design was changed. User input is no longer executed as SQL. It is only bound with setString() as a value in a fixed, read-only query against INFORMATION_SCHEMA.TABLE_PRIVILEGES. Defense-in-depth measures: (1) input is checked for null, blank and a maximum length; (2) every statement and result set uses try-with-resources, which prevents resource leaks; (3) the updatable, scrollable Statement is gone; (4) raw exception messages, class names and the unescaped query are no longer reflected to the client, which removes information leakage and reflected XSS, and the user input is HTML-escaped when echoed; (5) errors are logged server-side only; (6) the redundant createUser() call per request is removed, and the @PostConstruct call remains. Manual verification: payloads such as \"x'; GRANT ALL ON grant_rights TO unauthorized_user; --\" are treated as a literal table-name string, so they match nothing and execute no extra statements. Trade-off: this removes the intentionally vulnerable behaviour of the WebGoat lesson, so the lesson's success condition can no longer be reached through this endpoint. That is the intended result of a secure version."
+}
+

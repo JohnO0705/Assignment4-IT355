@@ -1,6 +1,30 @@
 === FILE: SqlInjection ===
-{"error":{"message":"gemini-3.8-flash is currently experiencing high demand, spikes in demand are usually temporary. Please try again later.","code":"service_unavailable"}}
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h16m19s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
 
 === FILE: SqlInjectionLesson10 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 8h24m1s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h16m8s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson2 ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h15m43s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson3 ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h15m9s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson4 ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h14m34s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson5 ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h13m59s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson5a ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h13m23s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson5b ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h12m53s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson8 ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h12m25s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+
+=== FILE: SqlInjectionLesson9 ===
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h11m46s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
 

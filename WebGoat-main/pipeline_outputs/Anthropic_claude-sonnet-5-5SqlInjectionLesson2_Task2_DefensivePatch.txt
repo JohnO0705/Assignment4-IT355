@@ -1,0 +1,112 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2014 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.regex.Pattern;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(
+    value = {
+      \"SqlStringInjectionHint2-1\",
+      \"SqlStringInjectionHint2-2\",
+      \"SqlStringInjectionHint2-3\",
+      \"SqlStringInjectionHint2-4\"
+    })
+public class SqlInjectionLesson2 implements AssignmentEndpoint {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SqlInjectionLesson2.class);
+
+  // Allow-list for a person name: letters, apostrophes, hyphens and single spaces
+  private static final Pattern NAME_PATTERN = Pattern.compile(\"^[\\\\p{L}'\\\\-]{1,50}( [\\\\p{L}'\\\\-]{1,50}){0,2}$\");
+
+  private static final String SELECT_EMPLOYEE =
+      \"SELECT * FROM employees WHERE first_name = ? AND last_name = ?\";
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson2(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/attack2\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String query) {
+    return injectableQuery(query);
+  }
+
+  /**
+   * The user supplied value is treated strictly as DATA (an employee full name such as
+   * 'First Last'), never as SQL text.
+   */
+  protected AttackResult injectableQuery(String employeeName) {
+    if (employeeName == null || !NAME_PATTERN.matcher(employeeName.trim()).matches()) {
+      return failed(this).feedback(\"sql-injection.2.failed\").build();
+    }
+
+    String[] parts = employeeName.trim().split(\" \", 2);
+    if (parts.length != 2) {
+      return failed(this).feedback(\"sql-injection.2.failed\").build();
+    }
+
+    try (var connection = dataSource.getConnection();
+        PreparedStatement statement =
+            connection.prepareStatement(
+                SELECT_EMPLOYEE, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY)) {
+      statement.setString(1, parts[0]);
+      statement.setString(2, parts[1]);
+
+      try (ResultSet results = statement.executeQuery()) {
+        StringBuilder output = new StringBuilder();
+
+        if (!results.first()) {
+          return failed(this).feedback(\"sql-injection.2.failed\").build();
+        }
+
+        if (\"Marketing\".equals(results.getString(\"department\"))) {
+          output.append(\"<span class='feedback-positive'>\")
+              .append(HtmlUtils.htmlEscape(employeeName))
+              .append(\"</span>\");
+          output.append(SqlInjectionLesson8.generateTable(results));
+          return success(this)
+              .feedback(\"sql-injection.2.success\")
+              .output(output.toString())
+              .build();
+        } else {
+          return failed(this)
+              .feedback(\"sql-injection.2.failed\")
+              .output(output.toString())
+              .build();
+        }
+      }
+    } catch (SQLException sqle) {
+      LOG.error(\"Database error while executing employee lookup\", sqle);
+      return failed(this).feedback(\"sql-injection.2.failed\").build();
+    }
+  }
+}
+",
+	 "mitigationSummary":  "Root cause: the endpoint executed a client-supplied string directly as SQL via Statement.executeQuery(query), giving the caller full control of the database command (arbitrary SELECT/UNION, data exfiltration, etc.). Fix: (1) The SQL text is now a constant with bound placeholders (SELECT * FROM employees WHERE first_name = ? AND last_name = ?) executed through a PreparedStatement, so user input is only ever bound as data via setString and cannot change the query structure. (2) Defense in depth: strict allow-list regex validation of the input (letters, apostrophes, hyphens, spaces, length-limited) is applied before any DB access, and input must split into first and last name. (3) The echoed user input is HTML-escaped with HtmlUtils.htmlEscape to avoid reflected XSS. (4) Raw SQLException messages are no longer returned to the client (preventing schema/error information leakage); they are logged server-side and a generic failure feedback is returned. (5) Connection, PreparedStatement and ResultSet are managed with try-with-resources to prevent leaks. The scrollable ResultSet type is preserved so SqlInjectionLesson8.generateTable still works. Manual verification: input such as \"Bob Franco\" returns the record normally; payloads like \"' OR '1'='1\", \"x'; DROP TABLE employees;--\" or a full SQL statement fail the allow-list and, even if they passed, would only be compared as literal name values. Note: this changes the lesson's intended behavior (it is deliberately vulnerable by design), so it should only be used where a secure production version is needed."
+}
+

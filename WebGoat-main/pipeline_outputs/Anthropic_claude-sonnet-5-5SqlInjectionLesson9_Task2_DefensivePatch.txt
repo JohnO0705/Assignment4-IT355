@@ -1,0 +1,141 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2018 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static org.hsqldb.jdbc.JDBCResultSet.CONCUR_UPDATABLE;
+import static org.hsqldb.jdbc.JDBCResultSet.TYPE_SCROLL_SENSITIVE;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AssignmentHints(
+    value = {
+      \"SqlStringInjectionHint.9.1\",
+      \"SqlStringInjectionHint.9.2\",
+      \"SqlStringInjectionHint.9.3\",
+      \"SqlStringInjectionHint.9.4\",
+      \"SqlStringInjectionHint.9.5\"
+    })
+public class SqlInjectionLesson9 implements AssignmentEndpoint {
+
+  private static final String JOHN_AUTH_TAN = \"3SL99A\";
+  private static final String EMPLOYEE_QUERY =
+      \"SELECT * FROM employees WHERE last_name = ? AND auth_tan = ?\";
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson9(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/attack9\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String name, @RequestParam String auth_tan) {
+    return injectableQueryIntegrity(name, auth_tan);
+  }
+
+  protected AttackResult injectableQueryIntegrity(String name, String auth_tan) {
+    StringBuilder output = new StringBuilder();
+    try (Connection connection = dataSource.getConnection()) {
+      // V2019_09_26_7__employees.sql
+      int oldMaxSalary = this.getMaxSalary(connection);
+      int oldSumSalariesOfOtherEmployees = this.getSumSalariesOfOtherEmployees(connection);
+      // begin transaction
+      connection.setAutoCommit(false);
+      // log only the static parameterized template, never raw user input
+      SqlInjectionLesson8.log(connection, EMPLOYEE_QUERY);
+      // parameterized query: user input is bound strictly as data
+      try (PreparedStatement statement =
+          connection.prepareStatement(
+              EMPLOYEE_QUERY, TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE)) {
+        statement.setString(1, name);
+        statement.setString(2, auth_tan);
+        statement.execute();
+      }
+      // check new sum of salaries other employees and new salaries of John
+      int newJohnSalary = this.getJohnSalary(connection);
+      int newSumSalariesOfOtherEmployees = this.getSumSalariesOfOtherEmployees(connection);
+      if (newJohnSalary > oldMaxSalary
+          && newSumSalariesOfOtherEmployees == oldSumSalariesOfOtherEmployees) {
+        // success commit
+        connection.commit();
+        connection.setAutoCommit(true);
+        output.append(
+            SqlInjectionLesson8.generateTable(this.getEmployeesDataOrderBySalaryDesc(connection)));
+        return success(this).feedback(\"sql-injection.9.success\").output(output.toString()).build();
+      }
+      // failed rollback
+      connection.rollback();
+      return failed(this)
+          .feedback(\"sql-injection.9.one\")
+          .output(
+              SqlInjectionLesson8.generateTable(this.getEmployeesDataOrderBySalaryDesc(connection)))
+          .build();
+    } catch (SQLException e) {
+      return failed(this)
+          .output(\"<br><span class='feedback-negative'>Database error occurred.</span>\")
+          .build();
+    }
+  }
+
+  private int getSqlInt(Connection connection, PreparedStatement statement) throws SQLException {
+    try (PreparedStatement ps = statement; ResultSet results = ps.executeQuery()) {
+      results.first();
+      return results.getInt(1);
+    }
+  }
+
+  private int getMaxSalary(Connection connection) throws SQLException {
+    return this.getSqlInt(
+        connection,
+        connection.prepareStatement(
+            \"SELECT max(salary) FROM employees\", TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE));
+  }
+
+  private int getSumSalariesOfOtherEmployees(Connection connection) throws SQLException {
+    PreparedStatement ps =
+        connection.prepareStatement(
+            \"SELECT sum(salary) FROM employees WHERE auth_tan != ?\",
+            TYPE_SCROLL_SENSITIVE,
+            CONCUR_UPDATABLE);
+    ps.setString(1, JOHN_AUTH_TAN);
+    return this.getSqlInt(connection, ps);
+  }
+
+  private int getJohnSalary(Connection connection) throws SQLException {
+    PreparedStatement ps =
+        connection.prepareStatement(
+            \"SELECT salary FROM employees WHERE auth_tan = ?\",
+            TYPE_SCROLL_SENSITIVE,
+            CONCUR_UPDATABLE);
+    ps.setString(1, JOHN_AUTH_TAN);
+    return this.getSqlInt(connection, ps);
+  }
+
+  private ResultSet getEmployeesDataOrderBySalaryDesc(Connection connection) throws SQLException {
+    String query = \"SELECT * FROM employees ORDER BY salary DESC\";
+    Statement statement = connection.createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
+    return statement.executeQuery(query);
+  }
+}
+",
+	 "mitigationSummary":  "The vulnerable query built by concatenating the 'name' and 'auth_tan' request parameters into SQL is now a PreparedStatement with bound placeholders (last_name = ? AND auth_tan = ?). Bound values are always treated as data, so quotes, comments, or stacked statements such as ';UPDATE ...' cannot change the query structure. The hardcoded TAN literals in the helper queries are also parameterized for consistency. Statements and result sets in the helpers are closed with try-with-resources to prevent resource leaks. The audit log call now receives only the static parameterized template instead of a string containing raw user input, so tainted data cannot reach the logging query (this assumes SqlInjectionLesson8.log may build SQL from its argument; that class was not shown). The SQLException handler no longer returns e.getMessage() to the client, which avoids leaking schema and SQL details. Transaction handling (setAutoCommit(false), commit, rollback) is unchanged. Remaining recommendations: add input validation (length and character allow-lists) on name and auth_tan, and run the DB account with least privilege (no UPDATE/DDL rights where not needed). Manual verification: inputs like Smith' OR '1'='1 and '; UPDATE employees SET salary=999999 -- should now only be matched as literal strings and return no rows, with no data modified."
+}
+

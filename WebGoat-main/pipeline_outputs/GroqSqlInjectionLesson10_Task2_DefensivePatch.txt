@@ -1,93 +1,9 @@
 {
-	"generatedCode": "@RestController
-@AssignmentHints(
-    value = {
-      \"SqlStringInjectionHint.10.1\",
-      \"SqlStringInjectionHint.10.2\",
-      \"SqlStringInjectionHint.10.3\",
-      \"SqlStringInjectionHint.10.4\",
-      \"SqlStringInjectionHint.10.5\",
-      \"SqlStringInjectionHint.10.6\"
-    })
-public class SqlInjectionLesson10 implements AssignmentEndpoint {
-
-  private final LessonDataSource dataSource;
-
-  public SqlInjectionLesson10(LessonDataSource dataSource) {
-    this.dataSource = dataSource;
-  }
-
-  @PostMapping(\"/SqlInjection/attack10\")
-  @ResponseBody
-  public AttackResult completed(@RequestParam String action_string) {
-    return injectableQueryAvailability(action_string);
-  }
-
-  protected AttackResult injectableQueryAvailability(String action) {
-    StringBuilder output = new StringBuilder();
-    String query = \"SELECT * FROM access_log WHERE action LIKE ?\";
-    Connection connection = null;
-    try {
-      connection = dataSource.getConnection();
-      try (PreparedStatement ps = connection.prepareStatement(query,
-          ResultSet.TYPE_SCROLL_INSENSITIVE,
-          ResultSet.CONCUR_READ_ONLY)) {
-        ps.setString(1, \"%\" + action + \"%\");
-        try (ResultSet results = ps.executeQuery()) {
-          if (results.getStatement() != null) {
-            if (results.first()) {
-              output.append(SqlInjectionLesson8.generateTable(results));
-            }
-            return failed(this)
-                .feedback(\"sql-injection.10.entries\")
-                .output(output.toString())
-                .build();
-          } else {
-            if (tableExists(connection)) {
-              return failed(this)
-                  .feedback(\"sql-injection.10.entries\")
-                  .output(output.toString())
-                  .build();
-            } else {
-              return success(this).feedback(\"sql-injection.10.success\").build();
-            }
-          }
-        }
-      }
-    } catch (SQLException e) {
-      if (connection != null \u0026\u0026 tableExists(connection)) {
-        return failed(this)
-            .output(\"\u003cspan class='feedback-negative'\u003e\" + e.getMessage() + \"\u003c/span\u003e\u003cbr\u003e\" + output.toString())
-            .build();
-      } else {
-        return success(this).feedback(\"sql-injection.10.success\").build();
-      }
-    } catch (Exception e) {
-      return failed(this)
-          .output(\"\u003cspan class='feedback-negative'\u003e\" + e.getMessage() + \"\u003c/span\u003e\")
-          .build();
-    } finally {
-      if (connection != null) {
-        try {
-          connection.close();
-        } catch (SQLException ignored) {}
-      }
-    }
-  }
-
-  private boolean tableExists(Connection connection) {
-    try (Statement stmt = connection.createStatement(
-            ResultSet.TYPE_SCROLL_INSENSITIVE,
-            ResultSet.CONCUR_READ_ONLY);
-         ResultSet results = stmt.executeQuery(\"SELECT * FROM access_log\")) {
-      int cols = results.getMetaData().getColumnCount();
-      return cols \u003e 0;
-    } catch (SQLException e) {
-      String errorMsg = e.getMessage();
-      return !errorMsg.contains(\"object not found: ACCESS_LOG\");
-    }
-  }
+	"error": {
+		"message": "Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.",
+		"type": "invalid_request_error",
+		"code": "json_validate_failed",
+		"failed_generation": ""
+	}
 }
-",
-	"mitigationSummary": "The refactored code replaces string concatenation with a PreparedStatement, binding the user input as a parameter to prevent SQL injection. It uses try-with-resources for Connection, PreparedStatement, and ResultSet to ensure proper resource cleanup. The table existence check is preserved but simplified to use metadata. All potential exception paths are handled, and the connection is closed in a finally block. This approach follows defense-in-depth by sanitizing input, using parameterized queries, and ensuring resources are correctly managed.\
 

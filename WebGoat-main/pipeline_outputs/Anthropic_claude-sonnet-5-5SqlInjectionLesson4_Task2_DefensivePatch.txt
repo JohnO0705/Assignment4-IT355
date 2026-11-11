@@ -1,0 +1,117 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2018 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(
+    value = {\"SqlStringInjectionHint4-1\", \"SqlStringInjectionHint4-2\", \"SqlStringInjectionHint4-3\"})
+public class SqlInjectionLesson4 implements AssignmentEndpoint {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SqlInjectionLesson4.class);
+
+  private static final int MAX_QUERY_LENGTH = 200;
+
+  // Strict allow-list: the only accepted statement is adding the phone column to employees.
+  // DDL cannot be parameterized, so the input is validated against a whitelist and the
+  // statement actually executed is rebuilt from constants plus a validated integer.
+  private static final Pattern ALLOWED_DDL =
+      Pattern.compile(
+          \"^ *ALTER +TABLE +employees +ADD +(COLUMN +)?phone +VARCHAR *[(] *([0-9]{1,3}) *[)] *;? *$\",
+          Pattern.CASE_INSENSITIVE);
+
+  private static final String CHECK_COLUMN_SQL = \"SELECT phone FROM employees\";
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson4(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/attack4\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String query) {
+    return injectableQuery(query);
+  }
+
+  protected AttackResult injectableQuery(String query) {
+    if (query == null || query.length() > MAX_QUERY_LENGTH) {
+      return failed(this).output(\"Invalid query.\").build();
+    }
+
+    Matcher matcher = ALLOWED_DDL.matcher(query);
+    if (!matcher.matches()) {
+      return failed(this)
+          .output(\"Only adding the 'phone' column to the 'employees' table is permitted.\")
+          .build();
+    }
+
+    int columnLength = Integer.parseInt(matcher.group(2));
+    if (columnLength < 1 || columnLength > 255) {
+      return failed(this).output(\"Invalid column length.\").build();
+    }
+
+    // Only a validated integer is concatenated; everything else is a constant.
+    String ddl = \"ALTER TABLE employees ADD COLUMN phone VARCHAR(\" + columnLength + \")\";
+
+    try (Connection connection = dataSource.getConnection()) {
+      try (Statement statement =
+          connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY)) {
+        statement.executeUpdate(ddl);
+        connection.commit();
+      } catch (SQLException sqle) {
+        LOG.warn(\"Lesson 4 DDL failed\", sqle);
+        return failed(this).output(\"The statement could not be executed.\").build();
+      }
+
+      try (PreparedStatement check =
+          connection.prepareStatement(
+              CHECK_COLUMN_SQL, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY);
+          ResultSet results = check.executeQuery()) {
+        // user completes lesson if column phone exists
+        if (results.first()) {
+          String output =
+              \"<span class='feedback-positive'>\" + HtmlUtils.htmlEscape(query) + \"</span>\";
+          return success(this).output(output).build();
+        }
+        return failed(this).output(\"\").build();
+      } catch (SQLException sqle) {
+        LOG.warn(\"Lesson 4 verification failed\", sqle);
+        return failed(this).output(\"The statement could not be verified.\").build();
+      }
+    } catch (Exception e) {
+      LOG.error(\"Lesson 4 unexpected error\", e);
+      return failed(this).output(\"An unexpected error occurred.\").build();
+    }
+  }
+}
+",
+	 "mitigationSummary":  "The original code passed a user-supplied string directly to Statement.executeUpdate(), so the user controlled the entire SQL statement (arbitrary DDL/DML). PreparedStatement cannot parameterize DDL keywords or identifiers, so the fix applies defense in depth. (1) Input validation: null and length checks, then a strict case-insensitive allow-list regex that accepts only 'ALTER TABLE employees ADD [COLUMN] phone VARCHAR(n)'. Stacked statements, comments, subqueries and other tables or columns are rejected. (2) Query reconstruction: the executed SQL is rebuilt from constants plus a validated integer (1-255) parsed from the input, so no user-controlled text reaches the database. (3) The follow-up column check uses a constant PreparedStatement with try-with-resources. (4) The echoed query is HTML-escaped with HtmlUtils.htmlEscape to prevent reflected XSS. (5) Raw SQLException messages and class names are no longer returned to the client; details are logged server-side to prevent information leakage. Manual verification: legitimate input such as 'alter table employees add phone varchar(20)' is accepted, while payloads such as 'ALTER TABLE employees ADD phone varchar(20); DROP TABLE users', 'DROP TABLE employees', or inputs containing comments or other tables are rejected before any database call. The database account should also have least privilege as an additional layer."
+}
+

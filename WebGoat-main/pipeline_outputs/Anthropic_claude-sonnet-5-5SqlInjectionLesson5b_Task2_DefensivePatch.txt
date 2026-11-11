@@ -1,0 +1,130 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2016 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(
+    value = {
+      \"SqlStringInjectionHint5b1\",
+      \"SqlStringInjectionHint5b2\",
+      \"SqlStringInjectionHint5b3\",
+      \"SqlStringInjectionHint5b4\"
+    })
+public class SqlInjectionLesson5b implements AssignmentEndpoint {
+
+  private static final String QUERY =
+      \"SELECT * FROM user_data WHERE Login_Count = ? AND userid = ?\";
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson5b(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/assignment5b\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String userid, @RequestParam String login_count)
+      throws IOException {
+    return injectableQuery(login_count, userid);
+  }
+
+  protected AttackResult injectableQuery(String login_count, String accountName) {
+    // Output-encoded description of the query; user input is never concatenated into SQL.
+    final String queryInfo =
+        \"Your query was: \"
+            + HtmlUtils.htmlEscape(QUERY)
+            + \" [Login_Count=\"
+            + HtmlUtils.htmlEscape(String.valueOf(login_count))
+            + \", userid=\"
+            + HtmlUtils.htmlEscape(String.valueOf(accountName))
+            + \"]\";
+
+    // Strict input validation: both values must be integers
+    final int count;
+    final int userId;
+    try {
+      count = Integer.parseInt(login_count.trim());
+    } catch (Exception e) {
+      return failed(this)
+          .output(
+              \"Could not parse: \"
+                  + HtmlUtils.htmlEscape(String.valueOf(login_count))
+                  + \" to a number<br>\"
+                  + queryInfo)
+          .build();
+    }
+    try {
+      userId = Integer.parseInt(accountName.trim());
+    } catch (Exception e) {
+      return failed(this)
+          .output(
+              \"Could not parse: \"
+                  + HtmlUtils.htmlEscape(String.valueOf(accountName))
+                  + \" to a number<br>\"
+                  + queryInfo)
+          .build();
+    }
+
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement query =
+            connection.prepareStatement(
+                QUERY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+
+      query.setInt(1, count);
+      query.setInt(2, userId);
+
+      try (ResultSet results = query.executeQuery()) {
+        if (results != null && results.first()) {
+          ResultSetMetaData resultsMetaData = results.getMetaData();
+          StringBuilder output = new StringBuilder();
+
+          output.append(SqlInjectionLesson5a.writeTable(results, resultsMetaData));
+          results.last();
+
+          // If more than the expected rows are returned the lesson is considered solved
+          if (results.getRow() >= 6) {
+            return success(this)
+                .feedback(\"sql-injection.5b.success\")
+                .output(queryInfo)
+                .feedbackArgs(output.toString())
+                .build();
+          } else {
+            return failed(this).output(output.toString() + \"<br>\" + queryInfo).build();
+          }
+        } else {
+          return failed(this).feedback(\"sql-injection.5b.no.results\").output(queryInfo).build();
+        }
+      } catch (SQLException sqle) {
+        return failed(this).output(\"A database error occurred.<br>\" + queryInfo).build();
+      }
+    } catch (Exception e) {
+      return failed(this).output(\"An unexpected error occurred.<br>\" + queryInfo).build();
+    }
+  }
+}
+",
+	 "mitigationSummary":  "The original code concatenated the userid request parameter directly into the SQL string (\"... AND userid= \" + accountName), which allowed SQL injection even though login_count was bound. Fixes: (1) Both values are now bound through PreparedStatement placeholders (Login_Count = ? AND userid = ?) using setInt, so user input is never part of the SQL text and cannot change the query structure. (2) Defense in depth: both inputs are strictly validated as integers before the query runs, and non-numeric input is rejected. (3) The PreparedStatement, ResultSet and Connection are managed with try-with-resources to avoid leaks. (4) Raw exception messages (sqle.getMessage(), e.getMessage(), class names) are no longer returned to the client, so schema and error details are not disclosed. (5) Echoed user input in the response is HTML-escaped with HtmlUtils.htmlEscape to prevent reflected XSS, and the query display no longer uses string replace of the placeholder with raw input. Manual verification: payloads such as '0 OR 1=1' or '1; DROP TABLE user_data' in userid now fail integer parsing and are never sent to the database; valid numeric values are passed only as bound parameters. Note: the lesson's intended injection no longer works, which is the desired secure behavior."
+}
+

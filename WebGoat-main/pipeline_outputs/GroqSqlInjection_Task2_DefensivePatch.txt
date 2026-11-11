@@ -22,5 +22,5 @@ public class SqlInjection extends Lesson {
   }
 }
 ",
-	"mitigationSummary": "No SQL statements present; therefore no SQL injection risk. The code remains unchanged.\
+	"mitigationSummary": "No SQL injection vulnerability detected; code remains unchanged.\
 

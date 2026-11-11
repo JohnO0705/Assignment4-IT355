@@ -1,0 +1,134 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2016 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.*;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(value = {\"SqlStringInjectionHint5a1\"})
+public class SqlInjectionLesson5a implements AssignmentEndpoint {
+
+  private static final int MAX_INPUT_LENGTH = 100;
+
+  // The SQL text is a constant. User input is only ever bound as a parameter value.
+  private static final String QUERY =
+      \"SELECT * FROM user_data WHERE first_name = 'John' and last_name = ?\";
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson5a(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/assignment5a\")
+  @ResponseBody
+  public AttackResult completed(
+      @RequestParam String account, @RequestParam String operator, @RequestParam String injection) {
+    return injectableQuery(account + \" \" + operator + \" \" + injection);
+  }
+
+  protected AttackResult injectableQuery(String accountName) {
+    String shownQuery = HtmlUtils.htmlEscape(QUERY + \" [? = '\" + accountName + \"']\");
+
+    if (accountName == null || accountName.length() > MAX_INPUT_LENGTH) {
+      return failed(this).output(\"Invalid input.\").build();
+    }
+
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement statement =
+            connection.prepareStatement(
+                QUERY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+
+      statement.setString(1, accountName);
+
+      try (ResultSet results = statement.executeQuery()) {
+        if ((results != null) && (results.first())) {
+          ResultSetMetaData resultsMetaData = results.getMetaData();
+          StringBuilder output = new StringBuilder();
+
+          output.append(writeTable(results, resultsMetaData));
+          results.last();
+
+          // If they get back more than one user they succeeded
+          if (results.getRow() >= 6) {
+            return success(this)
+                .feedback(\"sql-injection.5a.success\")
+                .output(\"Your query was: \" + shownQuery)
+                .feedbackArgs(output.toString())
+                .build();
+          } else {
+            return failed(this)
+                .output(output.toString() + \"<br> Your query was: \" + shownQuery)
+                .build();
+          }
+        } else {
+          return failed(this)
+              .feedback(\"sql-injection.5a.no.results\")
+              .output(\"Your query was: \" + shownQuery)
+              .build();
+        }
+      }
+    } catch (SQLException sqle) {
+      // Do not leak database error details to the client
+      return failed(this)
+          .output(\"A database error occurred.<br> Your query was: \" + shownQuery)
+          .build();
+    } catch (Exception e) {
+      return failed(this).output(\"An unexpected error occurred.\").build();
+    }
+  }
+
+  public static String writeTable(ResultSet results, ResultSetMetaData resultsMetaData)
+      throws SQLException {
+    int numColumns = resultsMetaData.getColumnCount();
+    results.beforeFirst();
+    StringBuilder t = new StringBuilder();
+    t.append(\"<p>\");
+
+    if (results.next()) {
+      for (int i = 1; i < (numColumns + 1); i++) {
+        t.append(HtmlUtils.htmlEscape(resultsMetaData.getColumnName(i)));
+        t.append(\", \");
+      }
+
+      t.append(\"<br />\");
+      results.beforeFirst();
+
+      while (results.next()) {
+
+        for (int i = 1; i < (numColumns + 1); i++) {
+          String value = results.getString(i);
+          t.append(value == null ? \"null\" : HtmlUtils.htmlEscape(value));
+          t.append(\", \");
+        }
+
+        t.append(\"<br />\");
+      }
+
+    } else {
+      t.append(\"Query Successful; however no data was returned from this query.\");
+    }
+
+    t.append(\"</p>\");
+    return (t.toString());
+  }
+}
+",
+	 "mitigationSummary":  "Root cause: the original code concatenated the user-controlled values account, operator and injection straight into the SQL string and ran it with a plain Statement, so input such as ' or '1'='1 changed the query logic. Fixes: (1) The query is now a constant string with a ? placeholder, run through a PreparedStatement. The combined user input is bound with setString, so the driver treats it strictly as data and never as SQL syntax. Quotes, OR clauses and comment markers lose their meaning. (2) The result set is now CONCUR_READ_ONLY instead of CONCUR_UPDATABLE, following least privilege. (3) Input is rejected if null or longer than 100 characters. (4) Raw SQLException and exception messages are no longer returned to the client, which prevents leaking schema or database details. (5) The echoed query, column names and cell values are HTML-escaped with HtmlUtils.htmlEscape to block reflected or stored XSS. (6) The EXPLANATION constant was removed because the injection it describes can no longer succeed. Manual verification: a payload like Smith' or '1'='1 is matched literally against last_name, so it returns no rows and the lesson's success condition (6 or more rows) cannot be triggered. Normal values still work as parameterized lookups. Static review confirms no remaining string concatenation inside any SQL statement. Defense in depth should also include a least-privilege database account for the application."
+}
+

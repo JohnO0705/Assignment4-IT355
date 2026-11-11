@@ -1,0 +1,160 @@
+{
+	"generatedCode":  "/*
+ * SPDX-FileCopyrightText: Copyright © 2016 WebGoat authors
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+package org.owasp.webgoat.lessons.sqlinjection.introduction;
+
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
+import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import org.owasp.webgoat.container.LessonDataSource;
+import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
+import org.owasp.webgoat.container.assignments.AssignmentHints;
+import org.owasp.webgoat.container.assignments.AttackResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
+
+@RestController
+@AssignmentHints(
+    value = {
+      \"SqlStringInjectionHint.8.1\",
+      \"SqlStringInjectionHint.8.2\",
+      \"SqlStringInjectionHint.8.3\",
+      \"SqlStringInjectionHint.8.4\",
+      \"SqlStringInjectionHint.8.5\"
+    })
+public class SqlInjectionLesson8 implements AssignmentEndpoint {
+
+  private static final String SELECT_EMPLOYEE =
+      \"SELECT * FROM employees WHERE last_name = ? AND auth_tan = ?\";
+  private static final String INSERT_LOG =
+      \"INSERT INTO access_log (time, action) VALUES (?, ?)\";
+  private static final int MAX_LOG_LENGTH = 1000;
+
+  private final LessonDataSource dataSource;
+
+  public SqlInjectionLesson8(LessonDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  @PostMapping(\"/SqlInjection/attack8\")
+  @ResponseBody
+  public AttackResult completed(@RequestParam String name, @RequestParam String auth_tan) {
+    return injectableQueryConfidentiality(name, auth_tan);
+  }
+
+  protected AttackResult injectableQueryConfidentiality(String name, String auth_tan) {
+    StringBuilder output = new StringBuilder();
+
+    try (Connection connection = dataSource.getConnection()) {
+      log(connection, \"Employee lookup: \" + SELECT_EMPLOYEE + \" [last_name=\" + name + \"]\");
+
+      // Scrollable but read-only result set (least privilege)
+      try (PreparedStatement statement =
+          connection.prepareStatement(
+              SELECT_EMPLOYEE, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        statement.setString(1, name);
+        statement.setString(2, auth_tan);
+
+        try (ResultSet results = statement.executeQuery()) {
+          if (results.first()) {
+            output.append(generateTable(results));
+            results.last();
+
+            if (results.getRow() > 1) {
+              // more than one record, the user succeeded
+              return success(this)
+                  .feedback(\"sql-injection.8.success\")
+                  .output(output.toString())
+                  .build();
+            } else {
+              // only one record
+              return failed(this).feedback(\"sql-injection.8.one\").output(output.toString()).build();
+            }
+          } else {
+            // no results
+            return failed(this).feedback(\"sql-injection.8.no.results\").build();
+          }
+        }
+      }
+    } catch (SQLException e) {
+      System.err.println(\"SQL error in SqlInjectionLesson8: \" + e.getMessage());
+      return failed(this)
+          .output(\"<br><span class='feedback-negative'>An error occurred while processing the request.</span>\")
+          .build();
+    } catch (Exception e) {
+      System.err.println(\"Error in SqlInjectionLesson8: \" + e.getMessage());
+      return failed(this)
+          .output(\"<br><span class='feedback-negative'>An error occurred while processing the request.</span>\")
+          .build();
+    }
+  }
+
+  public static String generateTable(ResultSet results) throws SQLException {
+    ResultSetMetaData resultsMetaData = results.getMetaData();
+    int numColumns = resultsMetaData.getColumnCount();
+    results.beforeFirst();
+    StringBuilder table = new StringBuilder();
+    table.append(\"<table>\");
+
+    if (results.next()) {
+      table.append(\"<tr>\");
+      for (int i = 1; i < (numColumns + 1); i++) {
+        table.append(\"<th>\" + HtmlUtils.htmlEscape(resultsMetaData.getColumnName(i)) + \"</th>\");
+      }
+      table.append(\"</tr>\");
+
+      results.beforeFirst();
+      while (results.next()) {
+        table.append(\"<tr>\");
+        for (int i = 1; i < (numColumns + 1); i++) {
+          String value = results.getString(i);
+          table.append(\"<td>\" + (value == null ? \"\" : HtmlUtils.htmlEscape(value)) + \"</td>\");
+        }
+        table.append(\"</tr>\");
+      }
+
+    } else {
+      table.append(\"Query Successful; however no data was returned from this query.\");
+    }
+
+    table.append(\"</table>\");
+    return (table.toString());
+  }
+
+  public static void log(Connection connection, String action) {
+    if (action == null) {
+      action = \"\";
+    }
+    action = action.replace('\\'', '\"');
+    if (action.length() > MAX_LOG_LENGTH) {
+      action = action.substring(0, MAX_LOG_LENGTH);
+    }
+    Calendar cal = Calendar.getInstance();
+    SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\");
+    String time = sdf.format(cal.getTime());
+
+    try (PreparedStatement statement = connection.prepareStatement(INSERT_LOG)) {
+      statement.setString(1, time);
+      statement.setString(2, action);
+      statement.executeUpdate();
+    } catch (SQLException e) {
+      System.err.println(e.getMessage());
+    }
+  }
+}
+",
+	 "mitigationSummary":  "1) The main query was built by concatenating the 'name' and 'auth_tan' request parameters into the SQL string. It now uses a PreparedStatement with fixed SQL text and bound parameters (? placeholders set via setString), so user input is always treated as data and cannot change the query structure. 2) The log() helper also concatenated data, including the attacker-controlled action text, into an INSERT, which allowed second-order injection. It now uses a parameterized INSERT with the time and action bound as parameters, and the action length is capped. 3) The log entry no longer contains a query built from raw input. It records the static parameterized SQL plus the last_name value, which is bound as data. 4) The result set is now CONCUR_READ_ONLY instead of CONCUR_UPDATABLE (least privilege). It stays scrollable because first()/last() are still needed. 5) Statements and result sets are managed with try-with-resources to prevent resource leaks. 6) Raw SQL exception messages are no longer returned to the client, which prevents leaking schema or query details. Details are logged server-side and the client gets a generic error. 7) Database values and column names in generateTable are HTML-escaped (HtmlUtils.htmlEscape) as defense-in-depth against stored XSS. 8) Public method signatures are unchanged, so other lessons that call generateTable and log are unaffected. Manual verification: inputs such as ' OR '1'='1 or Smith' --  are now treated as literal strings, match no rows, and no longer return multiple records or alter the query."
+}
+
