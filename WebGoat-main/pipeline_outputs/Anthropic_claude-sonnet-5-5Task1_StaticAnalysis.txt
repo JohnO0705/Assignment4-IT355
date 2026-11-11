@@ -1,0 +1,36 @@
+{
+	"findings":  [
+		
+	]
+}
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "38-39,45-47",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-controlled request parameter 'action_string' is concatenated directly into the SQL query ('SELECT * FROM access_log WHERE action LIKE '%' + action + '%'') and run through a plain Statement.executeQuery. An attacker can alter the query logic, read arbitrary data, or run destructive statements such as DROP TABLE. Use a PreparedStatement with bound parameters instead."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "64-70,79-82",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "Raw exception messages (e.getMessage()) from SQL and other errors are returned to the client in the response output. This discloses database structure and error details that help an attacker refine SQL injection attacks. Return generic error messages and log details server-side."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "64-70,79-82",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "Exception messages, which can include attacker-controlled input echoed back by the database error, are concatenated into HTML output without encoding. This can allow reflected XSS. HTML-encode any dynamic content before including it in a response."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "41-47,88-92",
+			 "cweId":  "CWE-404",
+			 "cweName":  "Improper Resource Shutdown or Release",
+			 "description":  "The Statement and ResultSet objects created in injectableQueryAvailability and tableExists are never closed, since only the Connection uses try-with-resources. This can leak database resources and cause resource exhaustion under repeated requests.\
+
