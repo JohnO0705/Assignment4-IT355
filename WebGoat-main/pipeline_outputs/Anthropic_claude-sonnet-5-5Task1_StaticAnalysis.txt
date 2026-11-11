@@ -1,0 +1,248 @@
+{
+	"findings":  [
+		
+	]
+}
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "40-46",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-supplied request parameter 'action_string' is concatenated directly into the SQL query string ('SELECT * FROM access_log WHERE action LIKE '%\" + action + \"%'') and run via Statement.executeQuery without parameterization or sanitization. An attacker can alter the query logic, extract data, or modify and drop tables (e.g., the access_log table). Use PreparedStatement with bound parameters instead."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "64-71",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "Raw SQL exception messages (e.getMessage()) are included in the response output. This discloses database internals such as table names, syntax, and schema details, which helps an attacker refine SQL injection attacks. Return generic error messages and log details server-side."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "64-71, 78-81",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "Exception messages, which can contain attacker-controlled input echoed back by the database error (for example, parts of the injected SQL), are embedded unencoded into HTML output ('<span class=...>' + e.getMessage() + '</span>'). This may allow reflected XSS if the client renders the output as HTML. HTML-encode the output."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson10.java",
+			 "lineNumbers":  "38-100",
+			 "cweId":  "CWE-404",
+			 "cweName":  "Improper Resource Shutdown or Release",
+			 "description":  "Statement and ResultSet objects created in injectableQueryAvailability and tableExists are never closed explicitly. Only the Connection is closed through try-with-resources. This can lead to resource leaks under load. Use try-with-resources for Statement and ResultSet.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson2.java",
+			 "lineNumbers":  "34-36, 40-42",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-controlled request parameter 'query' is passed unchanged to Statement.executeQuery(). An attacker can execute arbitrary SQL, which allows reading, modifying, or deleting data. Use parameterized queries (PreparedStatement) and do not accept raw SQL from clients."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson2.java",
+			 "lineNumbers":  "48-51",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The user-supplied 'query' string is appended to an HTML response (inside a span) without encoding or sanitization. This enables reflected XSS if the output is rendered as HTML. HTML-encode the output or return it as plain text."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson2.java",
+			 "lineNumbers":  "57-58",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "The raw SQLException message is returned to the client. This can leak database structure, query details, and other internal information that helps an attacker refine SQL injection. Return a generic error message and log the details server-side.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson3.java",
+			 "lineNumbers":  "35-36,41",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-controlled 'query' request parameter is passed directly to statement.executeUpdate() without validation, sanitization, or parameterization. An attacker can run arbitrary SQL, including UPDATE, DELETE, INSERT, and DDL statements, against the database. This is intentional in the WebGoat lesson, but it is a critical SQL injection flaw."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson3.java",
+			 "lineNumbers":  "47",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The user-supplied 'query' string is concatenated into an HTML response (<span class='feedback-positive'>) without output encoding. This allows reflected HTML or script injection when the response is rendered."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson3.java",
+			 "lineNumbers":  "53-56",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "Raw SQLException messages and exception class names and messages are returned to the client. This can leak database schema details, SQL syntax, and internal implementation information that helps attackers refine their injection payloads."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson3.java",
+			 "lineNumbers":  "39-41",
+			 "cweId":  "CWE-404",
+			 "cweName":  "Improper Resource Shutdown or Release",
+			 "description":  "checkStatement and the ResultSet 'results' are never closed, since they are not in try-with-resources. This can leak database resources, especially when exceptions occur or the method is called repeatedly.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson4.java",
+			 "lineNumbers":  "39-40",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-supplied 'query' request parameter is passed directly to Statement.executeUpdate() with no validation, sanitization, or parameterization. An attacker can execute arbitrary SQL statements (DDL/DML such as ALTER, DROP, UPDATE, INSERT), which compromises the confidentiality, integrity, and availability of the database. The endpoint also has no authorization checks restricting what can be run."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson4.java",
+			 "lineNumbers":  "44-46",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The user-controlled 'query' string is concatenated into an HTML response (<span class='feedback-positive'>) without output encoding. If the query executes successfully, the response reflects the attacker's input, which allows reflected XSS through injected HTML or script content."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson4.java",
+			 "lineNumbers":  "49-53",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "Raw SQL exception messages (sqle.getMessage()) and exception details with the class name (e.getMessage()) are returned to the client. These can reveal database structure, SQL syntax details, and internal implementation information that helps an attacker refine injection attacks.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5.java",
+			 "lineNumbers":  "50-54",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-supplied 'query' parameter from the POST request is passed straight to Statement.executeQuery() with no validation, sanitization, or parameterization. An attacker can run arbitrary SQL, including DDL/DCL such as GRANT, and read or modify data. The endpoint is intentionally vulnerable as part of a training lesson, but it is still a real SQL injection."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5.java",
+			 "lineNumbers":  "56-62",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The user-controlled 'query' value is concatenated into the HTML response output ('Your query was: ' + query) without encoding. The endpoint returns it as a response body, so it may be rendered as HTML and allow reflected XSS."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5.java",
+			 "lineNumbers":  "58-62",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "On exception, the response includes the class name and the raw exception message (e.getMessage()), which can contain SQL errors and database internals. This helps an attacker with reconnaissance and SQL injection exploitation."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5.java",
+			 "lineNumbers":  "34-45",
+			 "cweId":  "CWE-259",
+			 "cweName":  "Use of Hard-coded Password",
+			 "description":  "The createUser() method creates a database user with a hard-coded password ('test') in a SQL statement. Exceptions are silently swallowed, which hides failures. Because the user is created on every request to the endpoint, this also gives an attacker a known low-privilege account to work with.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5a.java",
+			 "lineNumbers":  "35-36, 42-46, 50",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "User-controlled request parameters (account, operator, injection) are concatenated directly into the SQL query string at lines 35-36 and run through a plain Statement.executeQuery() at line 46. There is no parameterization, input validation or escaping, so an attacker can alter the query logic and read or modify arbitrary data. The fix is to use PreparedStatement with bound parameters. The injectable query is intentional for this training lesson, but the pattern is a real SQL injection vulnerability."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5a.java",
+			 "lineNumbers":  "55-59, 66-70, 73-78",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "SQL exception messages, the class name, and the full SQL query are returned to the client in the response output. This discloses database structure, query details and internal implementation, which helps an attacker refine injection attacks. Errors should be logged server-side and only a generic message returned."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5a.java",
+			 "lineNumbers":  "52-53, 55, 58, 101-114",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The user-controlled query string and database values (via writeTable, which appends results.getString(i) and column names) are placed into HTML output without encoding. Injected markup or stored malicious data in the database can execute as script in the victim's browser. HTML output encoding should be applied.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5b.java",
+			 "lineNumbers":  "41",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The userid request parameter is concatenated directly into the SQL query string (\"... AND userid= \" + accountName). The query is then passed to prepareStatement, but only the Login_Count placeholder is bound as a parameter. The concatenated part is not parameterized, so an attacker can inject arbitrary SQL, for example '0 OR 1=1', to read or manipulate data. The fix is to bind userid as a parameter with a placeholder as well."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5b.java",
+			 "lineNumbers":  "52-59, 85-98, 100-106",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "SQL exception messages, class names and the full query string, including the attacker-influenced input, are returned to the client in the response output. This discloses internal details such as the query structure, database errors and class names, which helps an attacker refine injection attacks. Log these details server-side and return a generic error message instead."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5b.java",
+			 "lineNumbers":  "52-59, 74-78, 82-83, 90-96, 102-106",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "User-controlled values (login_count, userid via queryString, and exception messages) are reflected into the HTML output (with <br> markup) without encoding. The login_count value is echoed back unsanitized when parsing fails, and the userid value is echoed through queryString. This allows reflected HTML or script injection. Output should be HTML-encoded.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson8.java",
+			 "lineNumbers":  "39-45, 50-53",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-controlled parameters 'name' and 'auth_tan' are concatenated directly into the SQL query string and run through Statement.executeQuery without parameterization or validation. An attacker can alter the query logic, for example with ' OR '1'='1, to read all employee records, including confidential data such as salaries and TANs. Use PreparedStatement with bound parameters."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson8.java",
+			 "lineNumbers":  "112-122",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The log() method builds an INSERT statement by concatenating the 'action' string, which contains user-supplied input. The only sanitization is replacing single quotes with double quotes, which is not an adequate defense. The result runs through Statement.executeUpdate, so the log table is open to second-order or stacked injection and data manipulation. Use a PreparedStatement."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson8.java",
+			 "lineNumbers":  "62-76, 80-93",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "Database values and column names are appended to HTML in generateTable() without output encoding. Because the SQL injection lets attackers control or insert the returned data, they can inject script content that is returned to the browser and rendered. Apply HTML-escaping to all dynamic values."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson8.java",
+			 "lineNumbers":  "73-77, 79-82",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "Raw exception messages, including SQL errors, are returned to the client inside HTML output. This leaks database structure and query details that help an attacker refine injection attacks. The messages are also embedded in HTML without encoding. Return generic error messages and log the details server-side."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson8.java",
+			 "lineNumbers":  "39-45, 50-53",
+			 "cweId":  "CWE-862",
+			 "cweName":  "Missing Authorization",
+			 "description":  "The endpoint returns employee records, including sensitive fields such as the TAN and salary, based only on the 'name' and 'auth_tan' parameters. There is no authentication or access control tied to the caller's session, so any caller can query other employees' data.\
+
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson9.java",
+			 "lineNumbers":  "38-47,53-54",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-controlled request parameters 'name' and 'auth_tan' are concatenated directly into the SQL string queryInjection. The string is then run with statement.execute() on an updatable Statement, without a PreparedStatement or parameter binding. An attacker can alter the query logic. Because execute() allows stacked statements, the attacker can also modify data, for example by raising salaries. The fix is to use parameterized queries with PreparedStatement."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson9.java",
+			 "lineNumbers":  "74-77",
+			 "cweId":  "CWE-209",
+			 "cweName":  "Generation of Error Message Containing Sensitive Information",
+			 "description":  "When a SQLException occurs, the raw database error message (e.getMessage()) is returned to the client in the HTML output. This can leak details of the schema, the query structure and the database. It also helps an attacker refine SQL injection payloads. The message is also inserted into HTML unescaped."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson9.java",
+			 "lineNumbers":  "35-36,50-52,60-62",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The tainted query string is also passed to SqlInjectionLesson8.log(connection, queryInjection), which probably writes it to the database. This could allow second-order injection if the logging code does not parameterize the query. This finding is lower confidence because the logging code is not shown.\
+
