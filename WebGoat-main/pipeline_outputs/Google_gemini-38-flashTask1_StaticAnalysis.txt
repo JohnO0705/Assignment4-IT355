@@ -1,30 +1,64 @@
-=== FILE: SqlInjection ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h16m19s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{
+	"findings":  [
+		
+	]
+}","type":"text
 
 === FILE: SqlInjectionLesson10 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h16m8s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{"error":{"message":"gemini-3.8-flash is currently experiencing high demand, spikes in demand are usually temporary. Please try again later.","code":"service_unavailable"}}
 
-=== FILE: SqlInjectionLesson2 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h15m43s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson2.java",
+			 "lineNumbers":  "44",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The user-supplied input 'query' from the request parameter is executed directly via java.sql.Statement.executeQuery() without validation or parameterization, allowing arbitrary SQL execution."
+		},
+		 {
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson2.java",
+			 "lineNumbers":  "50-52",
+			 "cweId":  "CWE-79",
+			 "cweName":  "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+			 "description":  "The unvalidated 'query' parameter is concatenated directly into an HTML string returned in the response, enabling reflected cross-site scripting.\
 
-=== FILE: SqlInjectionLesson3 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h15m9s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson3.java",
+			 "lineNumbers":  "47",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The method injectableQuery executes untrusted input passed from the 'query' parameter directly in statement.executeUpdate() without parameterization, leading to SQL injection.\
 
-=== FILE: SqlInjectionLesson4 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h14m34s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson4.java",
+			 "lineNumbers":  "46",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The application executes a raw SQL query directly provided by user input via 'statement.executeUpdate(query)' without parameterized queries or input validation, leading to SQL Injection.\
 
-=== FILE: SqlInjectionLesson5 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h13m59s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{
+	"findings":  [
+		{
+			"filePath":  "src\\main\\java\\org\\owasp\\webgoat\\lessons\\sqlinjection\\Introduction\\SqlInjectionLesson5.java",
+			 "lineNumbers":  "65",
+			 "cweId":  "CWE-89",
+			 "cweName":  "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+			 "description":  "The application executes an untrusted SQL query directly via Statement.executeQuery without parameterized inputs or validation, allowing SQL injection.\
 
 === FILE: SqlInjectionLesson5a ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h13m23s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{"error":{"message":"gemini-3.8-flash is currently experiencing high demand, spikes in demand are usually temporary. Please try again later.","code":"service_unavailable"}}
 
 === FILE: SqlInjectionLesson5b ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h12m53s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 6h26m31s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
 
 === FILE: SqlInjectionLesson8 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h12m25s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 6h26m31s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
 
 === FILE: SqlInjectionLesson9 ===
-{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 7h11m46s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
+{"error":{"message":"Rate limit exceeded for model gemini-3.8-flash (limit: 20 requests per day on Free Tier). Please retry in 6h23m10s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}
 
